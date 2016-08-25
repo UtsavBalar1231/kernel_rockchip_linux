@@ -1224,7 +1224,30 @@ struct drm_plane {
  * @enable: Called right after encoder commit, enables the bridge
  */
 struct drm_bridge_funcs {
+	/**
+	 * @attach:
+	 *
+	 * This callback is invoked whenever our bridge is being attached to a
+	 * &drm_encoder.
+	 *
+	 * The attach callback is optional.
+	 *
+	 * RETURNS:
+	 *
+	 * Zero on success, error code on failure.
+	 */
 	int (*attach)(struct drm_bridge *bridge);
+
+	/**
+	 * @detach:
+	 *
+	 * This callback is invoked whenever our bridge is being detached from a
+	 * &drm_encoder.
+	 *
+	 * The detach callback is optional.
+	 */
+	void (*detach)(struct drm_bridge *bridge);
+
 	bool (*mode_fixup)(struct drm_bridge *bridge,
 			   const struct drm_display_mode *mode,
 			   struct drm_display_mode *adjusted_mode);
@@ -1777,6 +1800,7 @@ extern int drm_bridge_add(struct drm_bridge *bridge);
 extern void drm_bridge_remove(struct drm_bridge *bridge);
 extern struct drm_bridge *of_drm_find_bridge(struct device_node *np);
 extern int drm_bridge_attach(struct drm_device *dev, struct drm_bridge *bridge);
+extern void drm_bridge_detach(struct drm_bridge *bridge);
 
 bool drm_bridge_mode_fixup(struct drm_bridge *bridge,
 			const struct drm_display_mode *mode,
