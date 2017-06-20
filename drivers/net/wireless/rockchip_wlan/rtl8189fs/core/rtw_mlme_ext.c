@@ -13437,7 +13437,6 @@ void addba_timer_hdl(void *ctx)
 	if ((phtpriv->ht_option == _TRUE) && (phtpriv->ampdu_enable == _TRUE)) {
 		if (phtpriv->candidate_tid_bitmap)
 			phtpriv->candidate_tid_bitmap = 0x0;
-
 	}
 #endif /* CONFIG_80211N_HT */
 }
