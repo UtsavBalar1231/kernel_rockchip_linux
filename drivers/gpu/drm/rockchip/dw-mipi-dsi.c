@@ -219,6 +219,11 @@
 #define FEEDBACK_DIV_DEF_VAL_BYPASS	BIT(5)
 #define INPUT_DIV_DEF_VAL_BYPASS	BIT(4)
 
+#define POWER_CONTROL		BIT(6)
+#define INTERNAL_REG_CURRENT	BIT(3)
+#define BIAS_BLOCK_ON		BIT(2)
+#define BANDGAP_ON		BIT(0)
+
 enum soc_type {
 	PX30,
 	RK1808,
@@ -699,6 +704,11 @@ static void dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 
 	if (IS_DSI0(dsi))
 		dw_mipi_dsi_phy_pll_init(dsi);
+	
+	regmap_write(dphy->regmap, 0x20,
+			POWER_CONTROL | INTERNAL_REG_CURRENT |
+			BIAS_BLOCK_ON | BANDGAP_ON);
+
 }
 
 static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
@@ -719,7 +729,7 @@ static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 	if (bpp < 0)
 		bpp = 24;
 
-	lanes = dsi->slave ? dsi->lanes * 2 : dsi->lanes;
+	lanes = /*dsi->slave ? dsi->lanes * 2 :*/ dsi->lanes;
 	tmp = (u64)mode->clock * 1000 * bpp;
 	do_div(tmp, lanes);
 
@@ -1190,6 +1200,9 @@ static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
 	if (dsi->master)
 		dw_mipi_dsi_pre_enable(dsi->master);
 
+	if (dsi->slave)
+		dw_mipi_dsi_pre_enable(dsi->slave);
+
 	mutex_lock(&dsi->mutex);
 
 	if (dsi->prepared) {
@@ -1213,9 +1226,6 @@ static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
 	dsi->prepared = true;
 
 	mutex_unlock(&dsi->mutex);
-
-	if (dsi->slave)
-		dw_mipi_dsi_pre_enable(dsi->slave);
 }
 
 static void dw_mipi_dsi_enable(struct dw_mipi_dsi *dsi)
@@ -1280,6 +1290,7 @@ static void dw_mipi_dsi_encoder_enable(struct drm_encoder *encoder)
 		 dsi->lane_mbps, dsi->slave ? dsi->lanes * 2 : dsi->lanes);
 
 	dw_mipi_dsi_vop_routing(dsi);
+	dw_mipi_dsi_pre_init(dsi);
 	dw_mipi_dsi_pre_enable(dsi);
 
 	if (dsi->panel)
@@ -1325,9 +1336,9 @@ dw_mipi_dsi_encoder_atomic_check(struct drm_encoder *encoder,
 	s->eotf = TRADITIONAL_GAMMA_SDR;
 	s->color_space = V4L2_COLORSPACE_DEFAULT;
 
-	if (dsi->slave)
+	/*if (dsi->slave)
 		s->output_flags |= ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL;
-
+*/
 	if (IS_DSI1(dsi))
 		s->output_flags |= ROCKCHIP_OUTPUT_DSI_DUAL_LINK;
 
@@ -1740,7 +1751,7 @@ static int dw_mipi_dsi_bind(struct device *dev, struct device *master,
 		if (!dsi->slave)
 			return -EPROBE_DEFER;
 
-		dsi->lanes /= 2;
+		//dsi->lanes /= 2;
 		dsi->slave->lanes = dsi->lanes;
 		dsi->slave->channel = dsi->channel;
 		dsi->slave->format = dsi->format;
