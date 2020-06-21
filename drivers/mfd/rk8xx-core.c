@@ -660,21 +660,22 @@ int rk8xx_probe(struct device *dev, int variant, unsigned int irq, struct regmap
 	if (!irq)
 		return dev_err_probe(dev, -EINVAL, "No interrupt support, no core IRQ\n");
 
+	for (i = 0; i < nr_pre_init_regs; i++) {
+		ret = regmap_update_bits(rk808->regmap,
+				pre_init_reg[i].addr,
+				pre_init_reg[i].mask,
+				pre_init_reg[i].value);
+		if (ret)
+			return dev_err_probe(dev, ret, "0x%x write err\n",
+					pre_init_reg[i].addr);
+	}
+
 	ret = devm_regmap_add_irq_chip(dev, rk808->regmap, irq,
 				       IRQF_ONESHOT | dual_support, -1,
 				       rk808->regmap_irq_chip, &rk808->irq_data);
 	if (ret)
 		return dev_err_probe(dev, ret, "Failed to add irq_chip\n");
 
-	for (i = 0; i < nr_pre_init_regs; i++) {
-		ret = regmap_update_bits(rk808->regmap,
-					pre_init_reg[i].addr,
-					pre_init_reg[i].mask,
-					pre_init_reg[i].value);
-		if (ret)
-			return dev_err_probe(dev, ret, "0x%x write err\n",
-					     pre_init_reg[i].addr);
-	}
 
 	ret = devm_mfd_add_devices(dev, PLATFORM_DEVID_AUTO, cells, nr_cells, NULL, 0,
 			      regmap_irq_get_domain(rk808->irq_data));
