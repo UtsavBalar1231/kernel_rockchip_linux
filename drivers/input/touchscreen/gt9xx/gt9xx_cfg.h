@@ -24,6 +24,11 @@ u8 gtp_dat_gt11[] = {
 	#include "WGJ89006B_GT911_Config_20140625_085816_0X43.cfg"
 };
 
+u8 gtp_dat_gt911_lx[] = {
+	/* <800, 480>*/
+	#include "LX-CGG050-01.cfg"
+};
+
 u8 gtp_dat_8_9[] = {
 	/* TODO:Puts your update firmware data here! */
 	/* <1920, 1200> 8.9 */
