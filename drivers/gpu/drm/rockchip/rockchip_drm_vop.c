@@ -2933,7 +2933,7 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 		VOP_CTRL_SET(vop, lvds_en, 1);
 		VOP_CTRL_SET(vop, lvds_pin_pol, val);
 		VOP_CTRL_SET(vop, lvds_dclk_pol, dclk_inv);
-		VOP_GRF_SET(vop, grf_dclk_inv, dclk_inv);
+		VOP_GRF_SET(vop, grf_dclk_inv, !dclk_inv);
 
 		if (s->bus_format == MEDIA_BUS_FMT_YUYV8_1X16) {
 			VOP_CTRL_SET(vop, bt1120_en, 1);
