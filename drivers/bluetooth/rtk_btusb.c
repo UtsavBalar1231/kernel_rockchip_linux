@@ -1137,7 +1137,7 @@ static ssize_t btchr_read(struct file *file_p,
 
         ret = wait_event_interruptible(btchr_read_wait, !is_queue_empty());
         if (ret < 0) {
-            RTKBT_ERR("%s: wait event is signaled %d", __func__, ret);
+            RTKBT_ERR("%s: wait event is signaled %d", __func__, (int)ret);
             break;
         }
 
@@ -1768,7 +1768,7 @@ int reset_channel(firmware_info* fw_info)
 //we should reset controller and clean the hardware buffer
 bool reset_and_clean_hw_buffer(firmware_info* fw_info)
 {
-    int ret_val, i;
+    int ret_val;
     int ret_len = 0;
     bool event_recv = false;
 
@@ -1918,7 +1918,7 @@ void rtk_update_altsettings(patch_info *patch_entry, const unsigned char* org_co
         RTKBT_INFO("rtk_update_altsettings: %d AltSettings", count);
     }
 
-    RTKBT_INFO("ORG Config len=%08x:\n", org_config_len);
+    RTKBT_INFO("ORG Config len=%08x:\n", (unsigned int)org_config_len);
     for(i=0;i<=org_config_len;i+=0x10)
     {
         RTKBT_INFO("%08x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n", i, \
@@ -1928,7 +1928,7 @@ void rtk_update_altsettings(patch_info *patch_entry, const unsigned char* org_co
 
     if (config->data_len != org_config_len - sizeof(struct rtk_bt_vendor_config))
     {
-        RTKBT_ERR("rtk_update_altsettings: config len(%x) is not right(%x)", config->data_len, org_config_len-sizeof(struct rtk_bt_vendor_config));
+        RTKBT_ERR("rtk_update_altsettings: config len(%x) is not right(%x)", config->data_len, (unsigned int)(org_config_len-sizeof(struct rtk_bt_vendor_config)));
         return;
     }
 
@@ -2170,7 +2170,7 @@ fw_fail:
 
 void load_firmware_info(firmware_info *fw_info)
 {
-    const struct firmware *fw, *cfg;
+    const struct firmware *fw;/* *cfg;*/
     struct usb_device *udev;
     patch_info *patch_entry;
     char *fw_name;
