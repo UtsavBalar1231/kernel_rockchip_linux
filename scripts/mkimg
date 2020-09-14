@@ -224,6 +224,12 @@ fi
 scripts/resource_tool ${DTB_PATH} ${LOGO} ${LOGO_KERNEL} >/dev/null
 echo "  Image:  resource.img (with ${DTB} ${LOGO} ${LOGO_KERNEL}) is ready"
 
+if [ "$($srctree/scripts/config --state CONFIG_DRM_BATTERY_BMP)" == "y" ]; then
+mv resource.img resource-no-battery.img
+tools/images/pack_resource.sh resource-no-battery.img >/dev/null
+echo "  Image:  resource.img (with ${DTB} ${LOGO} ${LOGO_KERNEL} battery) is ready"
+fi
+
 if [ -f "${BOOT_IMG}" ]; then
 	if file -p -b ${BOOT_IMG} | grep -q 'Device Tree Blob' ; then
 		repack_itb;

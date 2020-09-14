@@ -259,6 +259,11 @@ config DRM_VKMS
 
 	  If M is selected the module will be called vkms.
 
+config DRM_BATTERY_BMP
+    tristate "DRM Battery BMP"
+    depends on DRM
+    default n
+
 source "drivers/gpu/drm/exynos/Kconfig"
 
 source "drivers/gpu/drm/rockchip/Kconfig"
