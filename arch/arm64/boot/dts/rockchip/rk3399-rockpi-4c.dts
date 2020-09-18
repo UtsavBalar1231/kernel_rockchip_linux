@@ -935,6 +935,21 @@
 	};
 };
 
+&gpio_keys {
+    status = "okay";
+    autorepeat;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwrbtn>;
+
+	power {
+		debounce-interval = <100>;
+		gpios = <&gpio4 26 GPIO_ACTIVE_LOW>;
+		label = "GPIO Key Power";
+		linux,code = <KEY_POWER>;
+		wakeup-source;
+	};
+};
+
 &gmac {
 	phy-supply = <&vcc_phy>;
 	phy-mode = "rgmii";
@@ -1183,6 +1198,11 @@
 		dp_pwr: dp-pwr {
 			rockchip,pins =
 				<1 24 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	buttons {
+		pwrbtn: pwrbtn {
+			rockchip,pins = <4 26 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 };

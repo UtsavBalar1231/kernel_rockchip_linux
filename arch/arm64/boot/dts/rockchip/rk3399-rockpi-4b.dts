@@ -317,6 +317,12 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&hdmi_i2c_xfer>, <&hdmi_cec>;
 	status = "okay";
+	rockchip,phy-table =
+		<74250000 0x8009 0x0004 0x0272>,
+		<165000000 0x802b 0x0004 0x0209>,
+		<297000000 0x8039 0x0005 0x028d>,
+		<594000000 0x8039 0x0000 0x019d>,
+		<000000000 0x0000 0x0000 0x0000>;
 };
 
 &hdmi_in_vopl {
@@ -1082,16 +1088,20 @@
 	};
 };
 
-// &rk_key {
-//     status = "okay";
+&gpio_keys {
+    status = "okay";
+    autorepeat;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwrbtn>;
 
-//     power-key {
-// 		gpios = <&gpio4 26 GPIO_ACTIVE_HIGH>;
-// 		linux,code = <116>;
-// 		label = "power";
-// 		gpio-key,wakeup;
-// 	};
-// };
+	power {
+		debounce-interval = <100>;
+		gpios = <&gpio4 26 GPIO_ACTIVE_LOW>;
+		label = "GPIO Key Power";
+		linux,code = <KEY_POWER>;
+		wakeup-source;
+	};
+};
 
 &gmac {
 	phy-supply = <&vcc_phy>;
@@ -1294,7 +1304,7 @@
 	pcie {
 		pcie_drv: pcie-drv {
 			rockchip,pins =
-				<2 26 RK_FUNC_GPIO &pcfg_pull_none>;
+				<2 26 RK_FUNC_GPIO &pcfg_pull_up_20ma>;
 			};
 	};
 
@@ -1336,6 +1346,11 @@
 	    i2s_8ch_mclk: i2s-8ch-mclk {
 	        rockchip,pins = <4 0 RK_FUNC_1 &pcfg_pull_none>;
 	    };
+	};
+	buttons {
+		pwrbtn: pwrbtn {
+			rockchip,pins = <4 26 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
 	};
 };
 
