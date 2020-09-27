@@ -167,6 +167,13 @@
 		#clock-cells = <0>;
 	};
 
+	clkin_cam: external-camera-clock {
+		compatible = "fixed-clock";
+		clock-frequency = <25000000>;
+		clock-output-names = "cam_clk";
+		#clock-cells = <0>;
+	};
+
 	es8316-sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
@@ -758,7 +765,156 @@
 
 &i2c4 {
 	status = "okay";
+
+	camera0: camera0-module@10 {
+		status = "okay";
+		compatible = "sony,imx219";
+		reg = <0x10>;
+
+		clocks = <&cru SCLK_CIF_OUT>;
+		clock-names = "clk_cif_out";
+		pinctrl-names = "rockchip,camera_default";
+		pwdn-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "default";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out0: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+
+	camera1: camera1-module@36 {
+		status = "disabled";
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+
+		clocks = <&clkin_cam>;
+		clock-names = "xclk";
+		pinctrl-names = "rockchip,camera_default";
+		pwdn-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "default";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+	camera2: camera2-module@36 {
+		status = "disabled";
+		compatible = "ovti,ov5648";
+		reg = <0x36>;
+
+		clocks = <&cru SCLK_CIF_OUT>;
+		clock-names = "xvclk";
+		pinctrl-names = "rockchip,camera_default";
+		pwdn-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "default";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out2: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 };
+
+&i2c2 {
+	status = "okay";
+};
+
+&i2c6 {
+	status = "disabled";
+};
+
+&i2c7 {
+	status = "okay";
+};
+
+&vopb {
+	status = "okay";
+};
+
+&vopb_mmu {
+	status = "okay";
+};
+
+&vopl {
+	status = "okay";
+};
+
+&vopl_mmu {
+	status = "okay";
+};
+
+&rkisp1_0 {
+	status = "okay";
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp0_mipi_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dphy_rx0_out>;
+		};
+	};
+};
+
+&mipi_dphy_rx0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ucam_out0>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy_rx0_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&isp0_mipi_in>;
+			};
+		};
+	};
+};
+
+&isp0_mmu {
+    status = "okay";
+};
+
+
+&isp1_mmu {
+	status = "disabled";
+};
+
 
 &cpu_l0 {
 	cpu-supply = <&vdd_cpu_l>;
@@ -892,6 +1048,30 @@
 
 &usbdrd_dwc3_1 {
 	dr_mode = "host";
+	status = "okay";
+};
+
+&usb_host0_ehci {
+	status = "okay";
+};
+
+&usb_host0_ohci {
+	status = "okay";
+};
+
+&usb_host1_ehci {
+	status = "okay";
+};
+
+&usb_host1_ohci {
+	status = "okay";
+};
+
+&pwm0 {
+	status = "okay";
+};
+
+&pwm1 {
 	status = "okay";
 };
 
