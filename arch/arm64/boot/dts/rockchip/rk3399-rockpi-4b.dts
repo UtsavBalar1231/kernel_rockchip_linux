@@ -47,6 +47,7 @@
 #include "rk3399.dtsi"
 #include "rk3399-android.dtsi"
 #include "rk3399-opp.dtsi"
+#include "rk3399-vop-clk-set.dtsi"
 
 &firmware_android {
 	status = "disabled";
@@ -330,37 +331,35 @@
     rockchip,dual-channel = <&dsi1>;
     enable-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
 
+    panel: panel@0 {
+        compatible ="simple-panel-dsi";
+        reg = <0>;
+        status = "okay";
 
+        dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST)>;
+        dsi,format = <MIPI_DSI_FMT_RGB888>;
+        dsi,lanes = <4>;
 
-        panel: panel@0 {
-            compatible ="simple-panel-dsi";
-            reg = <0>;
-            status = "okay";
+        display-timings {
+            native-mode = <&timing0>;
 
-            dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST)>;
-            dsi,format = <MIPI_DSI_FMT_RGB888>;
-            dsi,lanes = <4>;
-
-            display-timings {
-                native-mode = <&timing0>;
-
-                timing0: timing0 {
-                    clock-frequency = <67000000>;
-                    hactive = <720>;
-                    vactive = <1280>;
-                    hback-porch = <12>;
-                    hfront-porch = <120>;
-                    vback-porch = <4>;
-                    vfront-porch = <4>;
-                    hsync-len = <112>;
-                    vsync-len = <12>;
-                    hsync-active = <0>;
-                    vsync-active = <0>;
-                    de-active = <0>;
-                    pixelclk-active = <0>;
-                };
+            timing0: timing0 {
+                clock-frequency = <67000000>;
+                hactive = <720>;
+                vactive = <1280>;
+                hback-porch = <12>;
+                hfront-porch = <120>;
+                vback-porch = <4>;
+                vfront-porch = <4>;
+                hsync-len = <112>;
+                vsync-len = <12>;
+                hsync-active = <0>;
+                vsync-active = <0>;
+                de-active = <0>;
+                pixelclk-active = <0>;
             };
         };
+    };
 };
 
 &dsi1 {
@@ -380,10 +379,6 @@
 };
 
 &dp_in_vopl {
-	status = "disabled";
-};
-
-&edp_in_vopb {
 	status = "disabled";
 };
 
@@ -1011,7 +1006,6 @@
 };
 
 &usbdrd3_0 {
-	
 	status = "okay";
 };
 
