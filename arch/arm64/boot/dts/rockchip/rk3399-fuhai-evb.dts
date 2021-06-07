@@ -241,7 +241,7 @@
 
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
-		clocks = <&hym8563>;
+		clocks = <&rk818 1>;
 		clock-names = "ext_clock";
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_enable_h>;
@@ -266,6 +266,8 @@
 
 	wireless-bluetooth {
 		compatible = "bluetooth-platdata";
+		clocks = <&rk818 1>;
+		clock-names = "ext_clock";
 		/* wifi-bt-power-toggle; */
 		uart_rts_gpios = <&gpio2 19 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default", "rts_gpio";
