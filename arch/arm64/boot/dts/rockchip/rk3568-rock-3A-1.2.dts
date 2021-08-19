@@ -11,6 +11,66 @@
 	model = "Rockchip RK3568 Rock 3A";
 };
 
+// enable hdmi, connect to vp0
+&hdmi {
+       status = "okay";
+};
+
+&hdmi_in_vp0 {
+       status = "okay";
+};
+
+&hdmi_in_vp1 {
+       status = "disabled";
+};
+
+&hdmi_sound {
+       status = "okay";
+};
+
+// disable edp
+&edp {
+       status = "disabled";
+};
+
+&edp_phy {
+       status = "disabled";
+};
+
+&edp_in_vp0 {
+       status = "disabled";
+};
+
+&edp_in_vp1 {
+       status = "disabled";
+};
+
+// disable dsi0
+&dsi0 {
+        status = "disabled";
+};
+
+&dsi0_in_vp0 {
+        status = "disabled";
+};
+
+&dsi0_in_vp1 {
+        status = "disabled";
+};
+
+// disable dsi1
+&dsi1 {
+        status = "disabled";
+};
+
+&dsi1_in_vp0 {
+        status = "disabled";
+};
+
+&dsi1_in_vp1 {
+        status = "disabled";
+};
+
 // disable gmac0
 &gmac0 {
 	status = "disabled";
