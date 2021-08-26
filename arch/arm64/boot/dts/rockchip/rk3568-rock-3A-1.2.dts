@@ -9,6 +9,25 @@
 
 / {
 	model = "Rockchip RK3568 Rock 3A";
+
+	gpio-leds {
+		compatible = "gpio-leds";
+		status = "okay";
+
+		user-led {
+			gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;	//GPIO0_B7
+			linux,default-trigger = "heartbeat";
+			default-state = "on";
+			pinctrl-0 = <&user_led>;
+		};
+
+		wifi-led {
+			gpios = <&gpio2 8 GPIO_ACTIVE_HIGH>;	//GPIO2_B0
+			linux,default-trigger = "rfkill2";
+			default-state = "on";
+			pinctrl-0 = <&wifi_led>;
+		};
+	};
 };
 
 // enable hdmi, connect to vp0
@@ -108,7 +127,7 @@
 	};
 };
 
-// wifi、bt
+// wifi
 &sdmmc2 {
 	//max-frequency = <150000000>;
 	max-frequency = <100000000>;
@@ -154,6 +173,7 @@
     status = "okay";
 };
 
+// bt
 &wireless_bluetooth {
     compatible = "bluetooth-platdata";
     clocks = <&rk809 1>;
@@ -169,6 +189,7 @@
     status = "okay";
 };
 
+// wired network
 // disable gmac0
 &gmac0 {
 	status = "disabled";
