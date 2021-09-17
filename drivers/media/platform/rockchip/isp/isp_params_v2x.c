@@ -7,6 +7,7 @@
 #include <media/videobuf2-vmalloc.h>   /* for ISP params */
 #include <linux/delay.h>
 #include <linux/rk-preisp.h>
+#include <linux/slab.h>
 #include "dev.h"
 #include "regs.h"
 #include "regs_v2x.h"
@@ -317,9 +318,9 @@ isp_dpcc_config(struct rkisp_isp_params_vdev *params_vdev,
 		rkisp_iowrite32(params_vdev, value, ISP_DPCC2_PDAF_POINT_0 + 4 * i);
 	}
 
-	rkisp_iowrite32(params_vdev, arg->pdaf_forward_med, ISP_DPCC0_BPT_ADDR);
-	rkisp_iowrite32(params_vdev, arg->pdaf_forward_med, ISP_DPCC1_BPT_ADDR);
-	rkisp_iowrite32(params_vdev, arg->pdaf_forward_med, ISP_DPCC2_BPT_ADDR);
+	rkisp_iowrite32(params_vdev, arg->pdaf_forward_med, ISP_DPCC0_PDAF_FORWARD_MED);
+	rkisp_iowrite32(params_vdev, arg->pdaf_forward_med, ISP_DPCC1_PDAF_FORWARD_MED);
+	rkisp_iowrite32(params_vdev, arg->pdaf_forward_med, ISP_DPCC2_PDAF_FORWARD_MED);
 }
 
 static void

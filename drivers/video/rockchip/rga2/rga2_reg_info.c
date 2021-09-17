@@ -382,8 +382,6 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
     RK_U32 u_lt_addr, u_ld_addr, u_rt_addr, u_rd_addr;
     RK_U32 v_lt_addr, v_ld_addr, v_rt_addr, v_rd_addr;
 
-    RK_U32 s_y_lt_addr, s_y_ld_addr, s_y_rt_addr, s_y_rd_addr;
-
     dpw = 1;
     x_div = y_div = 1;
 
@@ -543,12 +541,9 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
 		*RGA_DST_NN_QUANTIZE_OFFSET = (msg->gr_color.gr_y_r & 0xffff) | (msg->gr_color.gr_y_g << 10) | (msg->gr_color.gr_y_b << 20);
 	}
 
-    yrgb_addr = (RK_U32)msg->src1.yrgb_addr + (msg->src1.y_offset * s_stride) + (msg->src1.x_offset * spw);
+    s_yrgb_addr = (RK_U32)msg->src1.yrgb_addr + (msg->src1.y_offset * s_stride) + (msg->src1.x_offset * spw);
 
-    s_y_lt_addr = yrgb_addr;
-    s_y_ld_addr = yrgb_addr + (msg->src1.act_h - 1) * s_stride;
-    s_y_rt_addr = yrgb_addr + (msg->dst.act_w - 1) * spw;
-    s_y_rd_addr = s_y_ld_addr + (msg->dst.act_w - 1) * spw;
+    *bRGA_SRC_BASE3 = s_yrgb_addr;
 
 	if (dst_fmt_y4_en) {
 		yrgb_addr = (RK_U32)msg->dst.yrgb_addr + (msg->dst.y_offset * d_stride) + ((msg->dst.x_offset * dpw)>>1);
@@ -607,16 +602,12 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
                 yrgb_addr = y_rd_addr;
                 u_addr = u_rd_addr;
                 v_addr = v_rd_addr;
-
-                s_yrgb_addr = s_y_rd_addr;
             }
             else
             {
                 yrgb_addr = y_ld_addr;
                 u_addr = u_ld_addr;
                 v_addr = v_ld_addr;
-
-                s_yrgb_addr = s_y_ld_addr;
             }
         }
         else
@@ -626,16 +617,12 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
                 yrgb_addr = y_rt_addr;
                 u_addr = u_rt_addr;
                 v_addr = v_rt_addr;
-
-                s_yrgb_addr = s_y_rt_addr;
             }
             else
             {
                 yrgb_addr = y_lt_addr;
                 u_addr = u_lt_addr;
                 v_addr = v_lt_addr;
-
-                s_yrgb_addr = s_y_lt_addr;
             }
         }
     }
@@ -648,16 +635,12 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
                 yrgb_addr = y_ld_addr;
                 u_addr = u_ld_addr;
                 v_addr = v_ld_addr;
-
-                s_yrgb_addr = s_y_ld_addr;
             }
             else
             {
                 yrgb_addr = y_rd_addr;
                 u_addr = u_rd_addr;
                 v_addr = v_rd_addr;
-
-                s_yrgb_addr = s_y_rd_addr;
             }
         }
         else
@@ -667,16 +650,12 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
                 yrgb_addr = y_lt_addr;
                 u_addr = u_lt_addr;
                 v_addr = v_lt_addr;
-
-                s_yrgb_addr = s_y_lt_addr;
             }
             else
             {
                 yrgb_addr = y_rt_addr;
                 u_addr = u_rt_addr;
                 v_addr = v_rt_addr;
-
-                s_yrgb_addr = s_y_rt_addr;
             }
         }
     }
@@ -702,7 +681,6 @@ static void RGA2_set_reg_dst_info(u8 *base, struct rga2_req *msg)
 	//if (msg->dst.format >= 0x18) {
 	//	*bRGA_DST_BASE1 = msg->dst.x_offset;
 	//}
-    *bRGA_SRC_BASE3 = (RK_U32)s_y_lt_addr;
 }
 
 static void RGA2_set_reg_alpha_info(u8 *base, struct rga2_req *msg)
@@ -1137,6 +1115,10 @@ static void format_name_convert(uint32_t *df, uint32_t sf)
         case 0x21:*df = RGA2_FORMAT_YCrCb_420_SP_10B; break;
         case 0x22:*df = RGA2_FORMAT_YCbCr_422_SP_10B; break;
         case 0x23:*df = RGA2_FORMAT_YCrCb_422_SP_10B; break;
+
+	case 0x24:*df = RGA2_FORMAT_BGR_565; break;
+	case 0x25:*df = RGA2_FORMAT_BGRA_5551; break;
+	case 0x26:*df = RGA2_FORMAT_BGRA_4444; break;
     }
 }
 
@@ -1296,9 +1278,9 @@ void RGA_MSG_2_RGA2_MSG(struct rga_req *req_rga, struct rga2_req *req)
                         alpha_mode_1 = 0x3010;
                     }
                     else if ((req_rga->alpha_rop_mode & 3) == 1) {
-                        /* dst use globalAlpha, and dst does not have pixelAlpha. */
-                        alpha_mode_0 = 0x3012;
-                        alpha_mode_1 = 0x3012;
+                        /* Do not use globalAlpha. */
+                        alpha_mode_0 = 0x3212;
+                        alpha_mode_1 = 0x3212;
                     }
                     else if ((req_rga->alpha_rop_mode & 3) == 2) {
                         /* dst use globalAlpha, and dst has pixelAlpha. */
@@ -1306,9 +1288,9 @@ void RGA_MSG_2_RGA2_MSG(struct rga_req *req_rga, struct rga2_req *req)
                         alpha_mode_1 = 0x3014;
                     }
                     else {
-                        /* Do not use globalAlpha. */
-                        alpha_mode_0 = 0x3212;
-                        alpha_mode_1 = 0x3212;
+                        /* dst use globalAlpha, and dst does not have pixelAlpha. */
+                        alpha_mode_0 = 0x3012;
+                        alpha_mode_1 = 0x3012;
                     }
                     req->alpha_mode_0 = alpha_mode_0;
                     req->alpha_mode_1 = alpha_mode_1;

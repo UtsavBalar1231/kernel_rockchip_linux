@@ -928,6 +928,7 @@ static const struct vop2_win_regs rk3568_cluster0_win_data = {
 	.enable = VOP_REG(RK3568_CLUSTER0_WIN0_CTRL0, 0x1, 0),
 	.format = VOP_REG(RK3568_CLUSTER0_WIN0_CTRL0, 0x1f, 1),
 	.rb_swap = VOP_REG(RK3568_CLUSTER0_WIN0_CTRL0, 0x1, 14),
+	.dither_up = VOP_REG(RK3568_CLUSTER0_WIN0_CTRL0, 0x1, 18),
 	.act_info = VOP_REG(RK3568_CLUSTER0_WIN0_ACT_INFO, 0x1fff1fff, 0),
 	.dsp_info = VOP_REG(RK3568_CLUSTER0_WIN0_DSP_INFO, 0x0fff0fff, 0),
 	.dsp_st = VOP_REG(RK3568_CLUSTER0_WIN0_DSP_ST, 0x1fff1fff, 0),
@@ -948,6 +949,7 @@ static const struct vop2_win_regs rk3568_cluster1_win_data = {
 	.enable = VOP_REG(RK3568_CLUSTER1_WIN0_CTRL0, 0x1, 0),
 	.format = VOP_REG(RK3568_CLUSTER1_WIN0_CTRL0, 0x1f, 1),
 	.rb_swap = VOP_REG(RK3568_CLUSTER1_WIN0_CTRL0, 0x1, 14),
+	.dither_up = VOP_REG(RK3568_CLUSTER1_WIN0_CTRL0, 0x1, 18),
 	.act_info = VOP_REG(RK3568_CLUSTER1_WIN0_ACT_INFO, 0x1fff1fff, 0),
 	.dsp_info = VOP_REG(RK3568_CLUSTER1_WIN0_DSP_INFO, 0x0fff0fff, 0),
 	.dsp_st = VOP_REG(RK3568_CLUSTER1_WIN0_DSP_ST, 0x1fff1fff, 0),
@@ -965,6 +967,7 @@ static const struct vop2_win_regs rk3568_esmart_win_data = {
 	.scl = &rk3568_esmart_win_scl,
 	.enable = VOP_REG(RK3568_ESMART0_REGION0_CTRL, 0x1, 0),
 	.format = VOP_REG(RK3568_ESMART0_REGION0_CTRL, 0x1f, 1),
+	.dither_up = VOP_REG(RK3568_ESMART0_REGION0_CTRL, 0x1, 12),
 	.rb_swap = VOP_REG(RK3568_ESMART0_REGION0_CTRL, 0x1, 14),
 	.uv_swap = VOP_REG(RK3568_ESMART0_REGION0_CTRL, 0x1, 16),
 	.act_info = VOP_REG(RK3568_ESMART0_REGION0_ACT_INFO, 0x1fff1fff, 0),
@@ -1021,6 +1024,7 @@ static const struct vop2_win_data rk3568_vop_win_data[] = {
 	  .max_upscale_factor = 8,
 	  .max_downscale_factor = 8,
 	  .dly = { 20, 47, 41 },
+	  .feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
@@ -1043,7 +1047,7 @@ static const struct vop2_win_data rk3568_vop_win_data[] = {
 	  .max_upscale_factor = 8,
 	  .max_downscale_factor = 8,
 	  .dly = { 20, 47, 41 },
-	  .feature = WIN_FEATURE_MIRROR,
+	  .feature = WIN_FEATURE_MIRROR | WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
@@ -1066,7 +1070,7 @@ static const struct vop2_win_data rk3568_vop_win_data[] = {
 	  .max_upscale_factor = 8,
 	  .max_downscale_factor = 8,
 	  .dly = { 20, 47, 41 },
-	  .feature = WIN_FEATURE_MIRROR,
+	  .feature = WIN_FEATURE_MIRROR | WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
@@ -1089,6 +1093,7 @@ static const struct vop2_win_data rk3568_vop_win_data[] = {
 	  .max_upscale_factor = 8,
 	  .max_downscale_factor = 8,
 	  .dly = { 20, 47, 41 },
+	  .feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
@@ -1249,6 +1254,7 @@ static const struct vop2_data rk3568_vop = {
 	.version = VOP_VERSION(0x40, 0x15),
 	.nr_vps = 3,
 	.nr_mixers = 5,
+	.nr_gammas = 1,
 	.max_input = { 4096, 2304 },
 	.max_output = { 4096, 2304 },
 	.ctrl = &rk3568_vop_ctrl,
