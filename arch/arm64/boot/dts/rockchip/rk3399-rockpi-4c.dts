@@ -339,7 +339,7 @@
 };
 
 &dsi {
-    status = "okay";
+    status = "disabled";
     rockchip,dual-channel = <&dsi1>;
     enable-gpios = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
 
@@ -375,7 +375,7 @@
 };
 
 &dsi1 {
-    status = "okay";
+    status = "disabled";
 };
 
 &hdmi_in_vopl {
@@ -407,7 +407,7 @@
 };
 
 &dsi_in_vopl {
-    status = "okay";
+    status = "disabled";
 };
 
 &dsi_in_vopb {
