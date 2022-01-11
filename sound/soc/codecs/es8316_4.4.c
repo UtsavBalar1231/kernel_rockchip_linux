@@ -40,6 +40,8 @@
 #define GPIO_HIGH 1
 #define es8316_DEF_VOL			0x1e
 
+#define DEBUG 0
+
 static struct snd_soc_component *es8316_codec;
 
 static const struct reg_default es8316_reg_defaults[] = {
@@ -97,6 +99,7 @@ static int snd_soc_read(struct snd_soc_component *component, unsigned int reg){
 }
 
 static int snd_soc_write(struct snd_soc_component *component, unsigned int reg, unsigned int val){
+	if(DEBUG)dev_info(component->dev, "[sawyer]es8316: %s, reg:0x%x, val:0x%x\n", __FUNCTION__,reg, val);
     return snd_soc_component_write(component, reg, val);
 }
 
@@ -768,8 +771,9 @@ static void es8316_pcm_shutdown(struct snd_pcm_substream *substream,
 	}
 
 	if (--es8316->pwr_count == 0) {
-		if (!es8316->hp_inserted)
-			snd_soc_write(codec, ES8316_SYS_PDN_REG0D, 0x3F);
+		dev_info(codec->dev, "[sawyer]es8316: %s, ES8316_SYS_PDN_REG0D %d\n", __FUNCTION__, __LINE__);
+		//if (!es8316->hp_inserted)
+		//	snd_soc_write(codec, ES8316_SYS_PDN_REG0D, 0x3F);
 		snd_soc_write(codec, ES8316_CLKMGR_CLKSW_REG01, 0xF3);
 	}
 }
@@ -834,6 +838,7 @@ static int es8316_set_bias_level(struct snd_soc_component *codec,
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(codec);
 	int ret;
 
+	if(DEBUG)dev_info(codec->dev, "[sawyer]es8316: %s, level:%d\n", __FUNCTION__, level);
 	switch (level) {
 	case SND_SOC_BIAS_ON:
 		break;
@@ -864,8 +869,9 @@ static int es8316_set_bias_level(struct snd_soc_component *codec,
 		snd_soc_write(codec, ES8316_HPMIX_PDN_REG15, 0x33);
 		snd_soc_write(codec, ES8316_HPMIX_VOL_REG16, 0x00);
 		snd_soc_write(codec, ES8316_ADC_PDN_LINSEL_REG22, 0xC0);
-		if (!es8316->hp_inserted)
-			snd_soc_write(codec, ES8316_SYS_PDN_REG0D, 0x3F);
+		if(DEBUG)dev_info(codec->dev, "[sawyer]es8316: %s, ES8316_SYS_PDN_REG0D %d\n", __FUNCTION__, __LINE__);
+		//if (!es8316->hp_inserted)
+		//	snd_soc_write(codec, ES8316_SYS_PDN_REG0D, 0x3F);
 		snd_soc_write(codec, ES8316_SYS_LP1_REG0E, 0x3F);
 		snd_soc_write(codec, ES8316_SYS_LP2_REG0F, 0x1F);
 		snd_soc_write(codec, ES8316_RESET_REG00, 0x00);
@@ -999,8 +1005,9 @@ static int es8316_resume(struct snd_soc_component *codec)
 		snd_soc_write(codec, ES8316_HPMIX_SWITCH_REG14, 0x00);
 		snd_soc_write(codec, ES8316_HPMIX_PDN_REG15, 0x33);
 		snd_soc_write(codec, ES8316_HPMIX_VOL_REG16, 0x00);
-		if (!es8316->hp_inserted)
-			snd_soc_write(codec, ES8316_SYS_PDN_REG0D, 0x3F);
+		if(DEBUG)dev_info(codec->dev, "[sawyer]es8316: %s, ES8316_SYS_PDN_REG0D %d\n", __FUNCTION__, __LINE__);
+		//if (!es8316->hp_inserted)
+		//	snd_soc_write(codec, ES8316_SYS_PDN_REG0D, 0x3F);
 		snd_soc_write(codec, ES8316_SYS_LP1_REG0E, 0xFF);
 		snd_soc_write(codec, ES8316_SYS_LP2_REG0F, 0xFF);
 		snd_soc_write(codec, ES8316_CLKMGR_CLKSW_REG01, 0xF3);
@@ -1038,6 +1045,7 @@ int es8316_headset_detect(int jack_insert)
 
 	/*enable micbias and disable PA*/
 	if (jack_insert) {
+		if(DEBUG)dev_info(es8316_codec->dev, "[sawyer]es8316: %s, ES8316_SYS_PDN_REG0D %d\n", __FUNCTION__, __LINE__);
 		snd_soc_update_bits(es8316_codec,
 				    ES8316_SYS_PDN_REG0D, 0x3f, 0);
 		es8316_enable_spk(es8316, false);
@@ -1099,9 +1107,10 @@ static int es8316_probe(struct snd_soc_component *codec)
 			snd_soc_write(codec, ES8316_HPMIX_SWITCH_REG14, 0x00);
 			snd_soc_write(codec, ES8316_HPMIX_PDN_REG15, 0x33);
 			snd_soc_write(codec, ES8316_HPMIX_VOL_REG16, 0x00);
-			if (!es8316->hp_inserted)
-				snd_soc_write(codec, ES8316_SYS_PDN_REG0D,
-					      0x3F);
+			if(DEBUG)dev_info(codec->dev, "[sawyer]es8316: %s, ES8316_SYS_PDN_REG0D %d\n", __FUNCTION__, __LINE__);
+			//if (!es8316->hp_inserted)
+			//	snd_soc_write(codec, ES8316_SYS_PDN_REG0D,
+			//		      0x3F);
 			snd_soc_write(codec, ES8316_SYS_LP1_REG0E, 0xFF);
 			snd_soc_write(codec, ES8316_SYS_LP2_REG0F, 0xFF);
 			snd_soc_write(codec, ES8316_CLKMGR_CLKSW_REG01, 0xF3);
@@ -1115,6 +1124,7 @@ static int es8316_probe(struct snd_soc_component *codec)
 
 static void es8316_remove(struct snd_soc_component *component)
 {
+	if(DEBUG)dev_info(component->dev, "[sawyer]es8316: %s\n", __FUNCTION__);
 	es8316_set_bias_level(component, SND_SOC_BIAS_OFF);
 }
 
@@ -1240,6 +1250,7 @@ static void es8316_i2c_shutdown(struct i2c_client *client)
 	struct es8316_priv *es8316 = i2c_get_clientdata(client);
 
 	if (es8316_codec != NULL) {
+		if(DEBUG)dev_info(&client->dev, "[sawyer]es8316: %s\n", __FUNCTION__);
 		es8316_enable_spk(es8316, false);
 		msleep(20);
 		es8316_set_bias_level(es8316_codec, SND_SOC_BIAS_OFF);
