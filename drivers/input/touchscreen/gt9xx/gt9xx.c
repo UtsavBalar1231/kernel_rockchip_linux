@@ -2694,6 +2694,10 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 		gtp_change_x2y = TRUE;
 		gtp_x_reverse = FALSE;
 		gtp_y_reverse = TRUE;
+	} else if (val == 9271) {
+		gtp_change_x2y = FALSE;
+		gtp_x_reverse = TRUE;
+		gtp_y_reverse = FALSE;
 	}
 
 	ts->tp_regulator = devm_regulator_get(&client->dev, "tp");

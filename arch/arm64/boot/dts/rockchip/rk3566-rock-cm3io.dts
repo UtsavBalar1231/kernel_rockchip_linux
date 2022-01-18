@@ -83,7 +83,6 @@
 		regulator-boot-on;
 	};
 
-
 	vcc3v3_lcd0: vcc3v3-lcd0 {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_lcd0";
@@ -95,6 +94,16 @@
 		};
 	};
 
+	vcc_tp: vcc-tp-regulator {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio2 RK_PC6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc_tp_en>;
+		regulator-name = "vcc_tp";
+		regulator-always-on;
+		regulator-boot-on;
+	};
 	backlight1: backlight1 {
 		status = "okay";
 		compatible = "pwm-backlight";
@@ -513,6 +522,55 @@
 	/delete-property/ vccio2-supply;
 };
 
+&i2c3 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c3m0_xfer>;
+	clock-frequency = <400000>;
+	i2c-scl-rising-time-ns = <138>;
+	i2c-scl-falling-time-ns = <4>;
+/*
+	gt9271@5d {
+		compatible = "goodix,gt9271";
+		reg = <0x5d>;
+		//pwr-supply = <&vcc_tp>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&tp_gpio>;
+
+		//touchscreen-size-x = <800>;
+		//touchscreen-size-y = <1280>;
+
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PC1 IRQ_TYPE_EDGE_FALLING>;
+
+		//irq-gpios = <&gpio3 RK_PC1 IRQ_TYPE_LEVEL_LOW>;
+		irq-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio3 RK_PB4 GPIO_ACTIVE_LOW>;
+		touchscreen-inverted-x;
+		status = "okay";
+	};
+*/
+	gt9xx@5d {
+		compatible = "goodix,gt9xx";
+		reg = <0x5d>;
+		tp = <&vcc_tp>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&tp_gpio>;
+
+		max-x = <800>;
+		max-y = <1280>;
+
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PC1 IRQ_TYPE_EDGE_FALLING>;
+
+		//irq-gpios = <&gpio3 RK_PC1 IRQ_TYPE_LEVEL_LOW>;
+		touch-gpio = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		reset-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_LOW>;
+		tp-size = <9271>;
+		status = "okay";
+	};
+};
+
 &sdmmc0 {
 	max-frequency = <150000000>;
 	supports-sd;
@@ -598,6 +656,21 @@
 
 		lcd0_enable_gpio: lcd-enable-gpio {
 			rockchip,pins = <4 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+
+	tp {
+		tp_gpio: tp-gpio {
+			rockchip,pins =
+				<3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_up>,
+				<3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	vcc-tp {
+		vcc_tp_en: vcc-tp-en {
+			rockchip,pins = <2 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 };
