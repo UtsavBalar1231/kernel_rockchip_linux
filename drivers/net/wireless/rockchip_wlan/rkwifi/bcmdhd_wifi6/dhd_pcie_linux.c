@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Linux DHD Bus Module for PCIE
  *
@@ -76,6 +75,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #endif /* USE_SMMU_ARCH_MSM */
+#include <dhd_config.h>
 
 #define PCI_CFG_RETRY 		10
 #define OS_HANDLE_MAGIC		0x1234abcd	/* Magic # to recognize osh */
@@ -1739,9 +1739,10 @@ int dhdpcie_init(struct pci_dev *pdev)
 			PCI_SLOT(pdev->devfn));
 		if (adapter != NULL) {
 			DHD_ERROR(("%s: found adapter info '%s'\n", __FUNCTION__, adapter->name));
-#ifdef BUS_POWER_RESTORE
+			adapter->bus_type = PCI_BUS;
+			adapter->bus_num = pdev->bus->number;
+			adapter->slot_num = PCI_SLOT(pdev->devfn);
 			adapter->pci_dev = pdev;
-#endif
 		} else
 			DHD_ERROR(("%s: can't find adapter info for this chip\n", __FUNCTION__));
 		osl_static_mem_init(osh, adapter);
@@ -1813,7 +1814,7 @@ int dhdpcie_init(struct pci_dev *pdev)
 		}
 
 		/* Bus initialization */
-		ret = dhdpcie_bus_attach(osh, &bus, dhdpcie_info->regs, dhdpcie_info->tcm, pdev);
+		ret = dhdpcie_bus_attach(osh, &bus, dhdpcie_info->regs, dhdpcie_info->tcm, pdev, adapter);
 		if (ret != BCME_OK) {
 			DHD_ERROR(("%s:dhdpcie_bus_attach() failed\n", __FUNCTION__));
 			break;
@@ -1830,8 +1831,11 @@ int dhdpcie_init(struct pci_dev *pdev)
 		if (bus->dev->bus) {
 			/* self member of structure pci_bus is bridge device as seen by parent */
 			bus->rc_dev = bus->dev->bus->self;
-			DHD_ERROR(("%s: rc_dev from dev->bus->self (%x:%x) is %pK\n", __FUNCTION__,
-				bus->rc_dev->vendor, bus->rc_dev->device, bus->rc_dev));
+			if (bus->rc_dev)
+				DHD_ERROR(("%s: rc_dev from dev->bus->self (%x:%x) is %pK\n", __FUNCTION__,
+					bus->rc_dev->vendor, bus->rc_dev->device, bus->rc_dev));
+			else
+				DHD_ERROR(("%s: bus->dev->bus->self is NULL\n", __FUNCTION__));
 		} else {
 			DHD_ERROR(("%s: unable to get rc_dev as dev->bus is NULL\n", __FUNCTION__));
 		}
@@ -1890,7 +1894,12 @@ int dhdpcie_init(struct pci_dev *pdev)
 		/* set private data for pci_dev */
 		pci_set_drvdata(pdev, dhdpcie_info);
 
-		if (dhd_download_fw_on_driverload) {
+#if defined(BCMDHD_MODULAR) && defined(INSMOD_FW_LOAD)
+		if (1)
+#else
+		if (dhd_download_fw_on_driverload)
+#endif
+		{
 			if (dhd_bus_start(bus->dhd)) {
 				DHD_ERROR(("%s: dhd_bud_start() failed\n", __FUNCTION__));
 				if (!allow_delay_fwdl)
@@ -1951,6 +1960,11 @@ int dhdpcie_init(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 	if (osh)
 		osl_detach(osh);
+	if (adapter != NULL) {
+		adapter->bus_type = -1;
+		adapter->bus_num = -1;
+		adapter->slot_num = -1;
+	}
 
 	dhdpcie_init_succeeded = FALSE;
 
@@ -2547,7 +2561,7 @@ int dhdpcie_oob_intr_register(dhd_bus_t *bus)
 
 	dhdpcie_osinfo->oob_irq_registered = TRUE;
 
-	return err;
+	return 0;
 }
 
 void dhdpcie_oob_intr_unregister(dhd_bus_t *bus)

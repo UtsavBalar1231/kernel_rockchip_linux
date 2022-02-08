@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * DHD debugability Linux os layer
  *
@@ -38,6 +37,7 @@
 
 #include <net/cfg80211.h>
 #include <wl_cfgvendor.h>
+#include <dhd_config.h>
 
 typedef void (*dbg_ring_send_sub_t)(void *ctx, const int ring_id, const void *data,
 	const uint32 len, const dhd_dbg_ring_status_t ring_status);
@@ -435,7 +435,10 @@ dhd_os_dbg_get_feature(dhd_pub_t *dhdp, int32 *features)
 	int ret = BCME_OK;
 	*features = 0;
 #ifdef DEBUGABILITY
-	*features |= DBG_MEMORY_DUMP_SUPPORTED;
+	// fix for RequestFirmwareDebugDump issue of VTS
+	if ((dhdp->conf->chip != BCM43751_CHIP_ID) && (dhdp->conf->chip != BCM43752_CHIP_ID) &&
+			(dhdp->conf->chip != BCM4375_CHIP_ID))
+		*features |= DBG_MEMORY_DUMP_SUPPORTED;
 	if (FW_SUPPORTED(dhdp, logtrace)) {
 		*features |= DBG_CONNECT_EVENT_SUPPORTED;
 		*features |= DBG_VERBOSE_LOG_SUPPORTED;

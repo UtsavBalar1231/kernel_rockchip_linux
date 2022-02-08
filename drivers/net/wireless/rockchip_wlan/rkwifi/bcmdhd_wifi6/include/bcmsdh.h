@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * SDIO host client driver interface of Broadcom HNBU
  *     export functions to client drivers
@@ -168,6 +167,9 @@ extern void bcmsdh_glom_post(void *sdh, uint8 *frame, void *pkt, uint len);
 extern void bcmsdh_glom_clear(void *sdh);
 extern uint bcmsdh_set_mode(void *sdh, uint mode);
 extern bool bcmsdh_glom_enabled(void);
+#ifdef PKT_STATICS
+extern uint32 bcmsdh_get_spend_time(void *sdh) ;
+#endif
 /* Flags bits */
 #define SDIO_REQ_4BYTE	0x1	/* Four-byte target (backplane) width (vs. two-byte) */
 #define SDIO_REQ_FIXED	0x2	/* Fixed address (FIFO) (vs. incrementing address) */

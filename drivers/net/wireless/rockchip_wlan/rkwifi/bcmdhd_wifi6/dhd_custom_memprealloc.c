@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Platform Dependent file for usage of Preallocted Memory
  *

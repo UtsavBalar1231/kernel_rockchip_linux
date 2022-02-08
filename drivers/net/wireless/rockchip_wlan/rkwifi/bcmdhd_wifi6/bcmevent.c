@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * bcmevent read-only data shared by kernel or app layers
  *

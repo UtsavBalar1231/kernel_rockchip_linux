@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * DHD Linux header file (dhd_linux exports for cfg80211 and other components)
  *
@@ -136,6 +135,10 @@ typedef struct dhd_if {
 	u64 last_sync;
 	struct work_struct  blk_tsfl_work;
 #endif /* DHDTCPSYNC_FLOOD_BLK */
+#ifdef WLEASYMESH
+	uint8 _1905_al_ucast[ETHER_ADDR_LEN];
+	uint8 _1905_al_mcast[ETHER_ADDR_LEN];
+#endif /* WLEASYMESH */
 } dhd_if_t;
 
 struct ipv6_work_info_t {
@@ -262,7 +265,6 @@ typedef struct wifi_adapter_info {
 #if defined(BT_OVER_SDIO)
 	const char	*btfw_path;
 #endif /* defined (BT_OVER_SDIO) */
-#ifdef BUS_POWER_RESTORE
 #if defined(BCMSDIO)
 	struct sdio_func *sdio_func;
 #endif /* BCMSDIO */
@@ -270,7 +272,6 @@ typedef struct wifi_adapter_info {
 	struct pci_dev *pci_dev;
 	struct pci_saved_state *pci_saved_state;
 #endif /* BCMPCIE */
-#endif
 } wifi_adapter_info_t;
 
 #define WLAN_PLAT_NODFS_FLAG	0x01

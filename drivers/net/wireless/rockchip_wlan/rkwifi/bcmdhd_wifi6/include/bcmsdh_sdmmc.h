@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * BCMSDH Function Driver for the native SDIO/MMC driver in the Linux Kernel
  *
@@ -88,6 +87,7 @@ struct sdioh_info {
 	struct sdio_func	*func[SDIOD_MAX_IOFUNCS];
 	uint		sd_clk_rate;
 	uint	txglom_mode;		/* Txglom mode: 0 - copy, 1 - multi-descriptor */
+	uint32	sdio_spent_time_us;
 };
 
 /************************************************************

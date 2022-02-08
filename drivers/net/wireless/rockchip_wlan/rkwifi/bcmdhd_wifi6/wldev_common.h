@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Common function shared by Linux WEXT, cfg80211 and p2p drivers
  *

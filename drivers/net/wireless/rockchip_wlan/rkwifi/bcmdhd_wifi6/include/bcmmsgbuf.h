@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * MSGBUF network driver ioctl/indication encoding
  * Broadcom 802.11abg Networking Device Driver

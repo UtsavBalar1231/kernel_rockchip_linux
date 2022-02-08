@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Linux cfg80211 driver scan related code
  *
@@ -41,7 +40,7 @@
 #include <802.11.h>
 #include <bcmiov.h>
 #include <linux/if_arp.h>
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 
 #include <ethernet.h>
 #include <linux/kernel.h>
@@ -1891,10 +1890,12 @@ wl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 			 return -ENODEV;
 		}
 	}
-	err = wl_cfg80211_check_in4way(cfg, ndev_to_wlc_ndev(ndev, cfg), NO_SCAN_IN4WAY,
+#ifdef WL_EXT_IAPSTA
+	err = wl_ext_in4way_sync(ndev_to_wlc_ndev(ndev, cfg), STA_NO_SCAN_IN4WAY,
 		WL_EXT_STATUS_SCAN, NULL);
 	if (err)
 		return err;
+#endif
 
 	err = __wl_cfg80211_scan(wiphy, ndev, request, NULL);
 	if (unlikely(err)) {
@@ -2069,7 +2070,7 @@ s32 wl_notify_escan_complete(struct bcm_cfg80211 *cfg,
 #if defined(ESCAN_RESULT_PATCH)
 	if (likely(cfg->scan_request)) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
-		if (aborted && p2p_scan(cfg) &&
+		if (aborted && cfg->p2p && p2p_scan(cfg) &&
 			(cfg->scan_request->flags & NL80211_SCAN_FLAG_FLUSH)) {
 			WL_ERR(("scan list is changed"));
 			cfg->bss_list = wl_escan_get_buf(cfg, !aborted);
@@ -2732,12 +2733,12 @@ static void wl_scan_timeout(unsigned long data)
 		dhdp->memdump_type = DUMP_TYPE_SCAN_TIMEOUT;
 		dhd_bus_mem_dump(dhdp);
 	}
+#endif /* DHD_FW_COREDUMP */
 	/*
 	 * For the memdump sanity, blocking bus transactions for a while
 	 * Keeping it TRUE causes the sequential private cmd error
 	 */
 	dhdp->scan_timeout_occurred = FALSE;
-#endif /* DHD_FW_COREDUMP */
 	msg.event_type = hton32(WLC_E_ESCAN_RESULT);
 	msg.status = hton32(WLC_E_STATUS_TIMEOUT);
 	msg.reason = 0xFFFFFFFF;

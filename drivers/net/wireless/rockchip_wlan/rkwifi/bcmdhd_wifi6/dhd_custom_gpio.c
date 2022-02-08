@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Customer code to add GPIO control during WLAN start/stop
  *

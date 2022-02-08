@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Fundamental types and constants relating to 802.11s Mesh
  *

@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * BCM47XX Sonics SiliconBackplane embedded ram core
  *

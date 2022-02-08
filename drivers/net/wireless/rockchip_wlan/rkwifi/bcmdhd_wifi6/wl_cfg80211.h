@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Linux cfg80211 driver
  *
@@ -75,9 +74,24 @@ struct bcm_cfg80211;
 struct wl_security;
 struct wl_ibss;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) && !defined(WL_SAE))
-#define WL_SAE
-#endif // endif
+#if !defined(WL_CLIENT_SAE) && (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0))
+#define WL_CLIENT_SAE
+#endif
+#if defined(WL_SAE) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
+#error "Can not support WL_SAE befor kernel 3.14"
+#endif
+#if defined(WL_CLIENT_SAE) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0))
+#error "Can not support WL_CLIENT_SAE before kernel 3.10"
+#endif
+#if defined(WL_CLIENT_SAE) && defined(WL_SAE)
+#error "WL_SAE is for dongle-offload and WL_CLIENT_SAE is for wpa_supplicant. Please choose one."
+#endif
+
+#if defined(WL_CLIENT_SAE)
+#ifndef WL_ASSOC_MGR_CMD_SEND_AUTH
+#define WL_ASSOC_MGR_CMD_SEND_AUTH 3
+#endif /* WL_ASSOC_MGR_CMD_SEND_AUTH */
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) && !defined(WL_SCAN_TYPE))
 #define WL_SCAN_TYPE
@@ -152,8 +166,8 @@ extern char *dhd_log_dump_get_timestamp(void);
 /* 0 invalidates all debug messages.  default is 1 */
 #define WL_DBG_LEVEL 0xFF
 
-#define CFG80211_INFO_TEXT		"[dhd] CFG80211-INFO) "
-#define CFG80211_ERROR_TEXT		"[dhd] CFG80211-ERROR) "
+#define CFG80211_INFO_TEXT		DHD_LOG_PREFIXS "CFG80211-INFO) "
+#define CFG80211_ERROR_TEXT		DHD_LOG_PREFIXS "CFG80211-ERROR) "
 
 #if defined(DHD_DEBUG)
 #ifdef DHD_LOG_DUMP
@@ -259,7 +273,7 @@ do {	\
 #define	WL_INFORM_MSG(x, args...)									\
 do {										\
 	if (wl_dbg_level & WL_DBG_INFO) {				\
-		printk(KERN_INFO "[dhd] CFG80211-INFO) %s : " x, __func__, ## args);	\
+		printk(KERN_INFO DHD_LOG_PREFIXS "CFG80211-INFO) %s : " x, __func__, ## args);	\
 	}								\
 } while (0)
 #define WL_INFORM(x) WL_INFORM_MSG x
@@ -270,7 +284,7 @@ do {										\
 #define	WL_SCAN_MSG(x, args...)								\
 do {									\
 	if (wl_dbg_level & WL_DBG_SCAN) {			\
-		printk(KERN_INFO "[dhd] CFG80211-SCAN) %s :" x, __func__, ## args);	\
+		printk(KERN_INFO DHD_LOG_PREFIXS "CFG80211-SCAN) %s :" x, __func__, ## args);	\
 	}									\
 } while (0)
 #define WL_SCAN(x) WL_SCAN_MSG x
@@ -280,7 +294,7 @@ do {									\
 #define	WL_TRACE_MSG(x, args...)								\
 do {									\
 	if (wl_dbg_level & WL_DBG_TRACE) {			\
-		printk(KERN_INFO "[dhd] CFG80211-TRACE) %s :" x, __func__, ## args); \
+		printk(KERN_INFO DHD_LOG_PREFIXS "CFG80211-TRACE) %s :" x, __func__, ## args); \
 	}									\
 } while (0)
 #define WL_TRACE(x) WL_TRACE_MSG x
@@ -292,7 +306,7 @@ do {									\
 #define	WL_DBG_MSG(x, args...)								\
 do {									\
 	if (wl_dbg_level & WL_DBG_DBG) {			\
-		printk(KERN_INFO "[dhd] CFG80211-DEBUG) %s :" x, __func__, ## args); \
+		printk(KERN_INFO DHD_LOG_PREFIXS "CFG80211-DEBUG) %s :" x, __func__, ## args); \
 	}									\
 } while (0)
 #define WL_DBG(x) WL_DBG_MSG x
@@ -383,6 +397,8 @@ do {									\
 #define WLAN_AKM_SUITE_FT_PSK			0x000FAC04
 #endif /* WLAN_AKM_SUITE_FT_PSK */
 
+#define WLAN_AKM_SUITE_SAE_SHA256	0x000FAC08
+
 #ifndef WLAN_AKM_SUITE_8021X_SUITE_B
 #define WLAN_AKM_SUITE_8021X_SUITE_B		0x000FAC0B
 #define WLAN_AKM_SUITE_8021X_SUITE_B_192	0x000FAC0C
@@ -391,7 +407,9 @@ do {									\
 /* TODO: even in upstream linux(v5.0), FT-1X-SHA384 isn't defined and supported yet.
  * need to revisit here to sync correct name later.
  */
+#ifndef WLAN_AKM_SUITE_FT_8021X_SHA384
 #define WLAN_AKM_SUITE_FT_8021X_SHA384		0x000FAC0D
+#endif /* WLAN_AKM_SUITE_FT_8021X_SHA384 */
 
 #define WL_AKM_SUITE_SHA256_1X  0x000FAC05
 #define WL_AKM_SUITE_SHA256_PSK 0x000FAC06
@@ -1365,17 +1383,9 @@ struct bcm_cfg80211 {
 #if defined(BSSCACHE)
 	wl_bss_cache_ctrl_t g_bss_cache_ctrl;
 #endif
-	int p2p_disconnected; // terence 20130703: Fix for wrong group_capab (timing issue)
-	struct ether_addr disconnected_bssid;
 	int autochannel;
 	int best_2g_ch;
 	int best_5g_ch;
-	uint handshaking;
-	int btc_mode;
-	bool wps_done;
-	wait_queue_head_t wps_done_event;
-	struct mutex in4way_sync;
-	ulong disconnected_jiffies;
 };
 #define WL_STATIC_IFIDX	(DHD_MAX_IFS + DHD_MAX_STATIC_IFS - 1)
 enum static_ndev_states {
@@ -2437,6 +2447,4 @@ extern int wl_get_ap_bw(struct net_device *dev, char* command, char *ifname, int
 #endif /* SUPPORT_AP_BWCTRL */
 bool wl_cfg80211_check_in_progress(struct net_device *dev);
 s32 wl_cfg80211_autochannel(struct net_device *dev, char* command, int total_len);
-int wl_cfg80211_check_in4way(struct bcm_cfg80211 *cfg,
-	struct net_device *dev, uint action, enum wl_ext_status status, void *context);
 #endif /* _wl_cfg80211_h_ */

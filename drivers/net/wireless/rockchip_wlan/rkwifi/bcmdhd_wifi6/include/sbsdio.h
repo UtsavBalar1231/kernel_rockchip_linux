@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * SDIO device core hardware definitions.
  * sdio is a portion of the pcmcia core in core rev 3 - rev 8

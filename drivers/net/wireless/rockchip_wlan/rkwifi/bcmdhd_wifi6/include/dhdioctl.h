@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Definitions for ioctls to access DHD iovars.
  * Based on wlioctl.h (for Broadcom 802.11abg driver).
@@ -180,6 +179,7 @@ typedef enum {
 #define DHD_IW_VAL	0x20000
 #define DHD_CFG_VAL	0x40000
 #define DHD_CONFIG_VAL	0x80000
+#define DHD_DUMP_VAL	0x100000
 #define DUMP_EAPOL_VAL	0x0001
 #define DUMP_ARP_VAL	0x0002
 #define DUMP_DHCP_VAL	0x0004

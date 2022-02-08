@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * OS Abstraction Layer Extension - the APIs defined by the "extension" API
  * are only supported by a subset of all operating systems.

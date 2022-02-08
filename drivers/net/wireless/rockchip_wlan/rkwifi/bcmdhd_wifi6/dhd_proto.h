@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Header file describing the internal (inter-module) DHD interfaces.
  *

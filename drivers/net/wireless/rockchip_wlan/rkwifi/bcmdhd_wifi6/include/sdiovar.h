@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Structure used by apps whose drivers access SDIO drivers.
  * Pulled out separately so dhdu and wlu can both use it.

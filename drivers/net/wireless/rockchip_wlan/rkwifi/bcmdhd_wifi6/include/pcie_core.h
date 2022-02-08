@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * BCM43XX PCIE core hardware definitions.
  *

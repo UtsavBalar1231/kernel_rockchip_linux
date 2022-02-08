@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Minimal debug/trace/assert driver definitions for
  * Broadcom 802.11 Networking Adapter.

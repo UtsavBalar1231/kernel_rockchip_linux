@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Custom OID/ioctl definitions for
  *
@@ -19890,6 +19889,13 @@ enum wl_sc_cmd {
 	WL_SC_CMD_CONFIG = 3,
 	WL_SC_CMD_LAST
 };
+
+typedef struct wl_ext_auth_evt {
+	wlc_ssid_t ssid;
+	struct ether_addr bssid;
+	unsigned int key_mgmt_suite;
+	int status;
+} wl_ext_auth_evt_t;
 
 /* WBUS sub-command IDs for unit test */
 #define WL_WBUS_INA_SLOT_START                0x01u /**< Inactive slot start sub command ID. */

@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (C) 1999-2019, Broadcom.
  *
@@ -47,6 +46,6 @@
 #define EPI_VERSION_DEV		100.10.545
 
 /* Driver Version String, ASCII, 32 chars max */
-#define	EPI_VERSION_STR		"100.10.545.9 (r826445-20200316-8)"
+#define	EPI_VERSION_STR		"100.10.545.23 (r826445-20210723-1)"
 
 #endif /* _epivers_h_ */

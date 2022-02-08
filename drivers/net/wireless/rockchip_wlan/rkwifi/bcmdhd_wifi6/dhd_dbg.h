@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Debug/trace/assert driver definitions for Dongle Host Driver.
  *

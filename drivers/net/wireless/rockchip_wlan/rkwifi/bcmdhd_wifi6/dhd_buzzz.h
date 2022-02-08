@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 #ifndef _DHD_BUZZZ_H_INCLUDED_
 #define _DHD_BUZZZ_H_INCLUDED_
 

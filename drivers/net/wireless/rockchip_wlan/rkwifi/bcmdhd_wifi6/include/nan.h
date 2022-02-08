@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Fundamental types and constants relating to WFA NAN
  * (Neighbor Awareness Networking)

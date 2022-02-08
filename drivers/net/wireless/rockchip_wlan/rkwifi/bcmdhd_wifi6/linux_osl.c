@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Linux OS Independent Layer
  *
@@ -2065,13 +2064,19 @@ osl_dma_lock_init(osl_t *osh)
 void
 osl_do_gettimeofday(struct osl_timespec *ts)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	struct timespec64 curtime;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	struct timespec curtime;
 #else
 	struct timeval curtime;
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	ktime_get_real_ts64(&curtime);
+	ts->tv_nsec = curtime.tv_nsec;
+	ts->tv_usec	= curtime.tv_nsec / 1000;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	getnstimeofday(&curtime);
 	ts->tv_nsec = curtime.tv_nsec;
 	ts->tv_usec = curtime.tv_nsec / 1000;
@@ -2083,12 +2088,31 @@ osl_do_gettimeofday(struct osl_timespec *ts)
 	ts->tv_sec = curtime.tv_sec;
 }
 
+uint32
+osl_do_gettimediff(struct osl_timespec *cur_ts, struct osl_timespec *old_ts)
+{
+	uint32 diff_s, diff_us, total_diff_us;
+	bool pgc_g = FALSE;
+
+	diff_s = (uint32)cur_ts->tv_sec - (uint32)old_ts->tv_sec;
+	pgc_g = (cur_ts->tv_usec > old_ts->tv_usec) ? TRUE : FALSE;
+	diff_us = pgc_g ? (cur_ts->tv_usec - old_ts->tv_usec) : (old_ts->tv_usec - cur_ts->tv_usec);
+	total_diff_us = pgc_g ? (diff_s * 1000000 + diff_us) : (diff_s * 1000000 - diff_us);
+	return total_diff_us;
+}
+
 void
 osl_get_monotonic_boottime(struct osl_timespec *ts)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	struct timespec64 curtime;
+#else
 	struct timespec curtime;
+#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	curtime = ktime_to_timespec64(ktime_get_boottime());
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
 	curtime = ktime_to_timespec(ktime_get_boottime());
 #else
 	get_monotonic_boottime(&curtime);

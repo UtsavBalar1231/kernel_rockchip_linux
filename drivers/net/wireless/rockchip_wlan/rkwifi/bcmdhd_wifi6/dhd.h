@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Header file describing the internal (inter-module) DHD interfaces.
  *
@@ -49,7 +48,7 @@
 #include <linux/ethtool.h>
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 #include <asm/unaligned.h>
 #if defined(CONFIG_HAS_WAKELOCK)
 #include <linux/wakelock.h>
@@ -383,7 +382,7 @@ enum dhd_op_flags {
 #endif	/* CUSTOM_SCAN_PASSIVE_TIME */
 
 #ifndef POWERUP_MAX_RETRY
-#define POWERUP_MAX_RETRY	3 /* how many times we retry to power up the chip */
+#define POWERUP_MAX_RETRY	1 /* how many times we retry to power up the chip */
 #endif // endif
 #ifndef POWERUP_WAIT_MS
 #define POWERUP_WAIT_MS		2000 /* ms: time out in waiting wifi to come up */
@@ -1390,6 +1389,10 @@ typedef struct dhd_pub {
 	void *pktcnts;
 #endif /* DHD_PKTDUMP_ROAM */
 	bool disable_dtim_in_suspend;	/* Disable set bcn_li_dtim in suspend */
+#ifdef CSI_SUPPORT
+	struct list_head csi_list;
+	int csi_count;
+#endif /* CSI_SUPPORT */
 	char *clm_path;		/* module_param: path to clm vars file */
 	char *conf_path;		/* module_param: path to config vars file */
 	struct dhd_conf *conf;	/* Bus module handle */
@@ -1410,6 +1413,12 @@ typedef struct dhd_pub {
 	int hostsleep;
 #ifdef SENDPROB
 	bool recv_probereq;
+#endif
+#ifdef DHD_NOTIFY_MAC_CHANGED
+	bool skip_dhd_stop;
+#endif /* DHD_NOTIFY_MAC_CHANGED */
+#ifdef WL_EXT_GENL
+	void *zconf;
 #endif
 } dhd_pub_t;
 
@@ -1579,6 +1588,11 @@ extern void dhd_os_wake_lock_destroy(struct dhd_info *dhd);
 extern void dhd_os_scan_wake_lock_timeout(dhd_pub_t *pub, int val);
 extern void dhd_os_scan_wake_unlock(dhd_pub_t *pub);
 #endif /* BCMPCIE_SCAN_WAKELOCK */
+
+#ifdef WLEASYMESH
+extern int dhd_get_1905_almac(dhd_pub_t *dhdp, uint8 ifidx, uint8* ea, bool mcast);
+extern int dhd_set_1905_almac(dhd_pub_t *dhdp, uint8 ifidx, uint8* ea, bool mcast);
+#endif /* WLEASYMESH */
 
 inline static void MUTEX_LOCK_SOFTAP_SET_INIT(dhd_pub_t * dhdp)
 {
@@ -2929,6 +2943,12 @@ extern void *dhd_pub_shim(dhd_pub_t *dhd_pub);
 void* dhd_get_fwdump_buf(dhd_pub_t *dhd_pub, uint32 length);
 #endif /* DHD_FW_COREDUMP */
 
+#if defined(SET_XPS_CPUS)
+int dhd_xps_cpus_enable(struct net_device *net, int enable);
+int custom_xps_map_set(struct net_device *net, char *buf, size_t len);
+void custom_xps_map_clear(struct net_device *net);
+#endif
+
 #if defined(SET_RPS_CPUS)
 int dhd_rps_cpus_enable(struct net_device *net, int enable);
 int custom_rps_map_set(struct netdev_rx_queue *queue, char *buf, size_t len);
@@ -2941,9 +2961,15 @@ void custom_rps_map_clear(struct netdev_rx_queue *queue);
 #define RPS_CPUS_MASK_IBSS "10"
 #define RPS_CPUS_WLAN_CORE_ID 4
 #else
+#if defined(DHD_TPUT_PATCH)
+#define RPS_CPUS_MASK "f"
+#define RPS_CPUS_MASK_P2P "f"
+#define RPS_CPUS_MASK_IBSS "f"
+#else
 #define RPS_CPUS_MASK "6"
 #define RPS_CPUS_MASK_P2P "6"
 #define RPS_CPUS_MASK_IBSS "6"
+#endif
 #endif /* CONFIG_MACH_UNIVERSAL7420 || CONFIG_SOC_EXYNOS8890 */
 #endif // endif
 
@@ -3411,4 +3437,7 @@ extern void dhd_set_tid_based_on_uid(dhd_pub_t *dhdp, void *pkt);
 extern int dhd_control_he_enab(dhd_pub_t * dhd, uint8 he_enab);
 extern uint8 control_he_enab;
 #endif /* DISABLE_HE_ENAB  || CUSTOM_CONTROL_HE_ENAB */
+#ifdef WL_MONITOR
+void dhd_set_monitor(dhd_pub_t *pub, int ifidx, int val);
+#endif /* WL_MONITOR */
 #endif /* _dhd_h_ */

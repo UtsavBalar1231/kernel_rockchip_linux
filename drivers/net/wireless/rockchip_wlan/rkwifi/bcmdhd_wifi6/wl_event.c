@@ -1,26 +1,25 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 
-#if defined(WL_EXT_IAPSTA) || defined(USE_IW)
-#include <bcmendian.h>
 #include <wl_android.h>
+#ifdef WL_EVENT
+#include <bcmendian.h>
 #include <dhd_config.h>
 
 #define EVENT_ERROR(name, arg1, args...) \
 	do { \
 		if (android_msg_level & ANDROID_ERROR_LEVEL) { \
-			printk(KERN_ERR "[dhd-%s] EVENT-ERROR) %s : " arg1, name, __func__, ## args); \
+			printk(KERN_ERR DHD_LOG_PREFIX "[%s] EVENT-ERROR) %s : " arg1, name, __func__, ## args); \
 		} \
 	} while (0)
 #define EVENT_TRACE(name, arg1, args...) \
 	do { \
 		if (android_msg_level & ANDROID_TRACE_LEVEL) { \
-			printk(KERN_ERR "[dhd-%s] EVENT-TRACE) %s : " arg1, name, __func__, ## args); \
+			printk(KERN_INFO DHD_LOG_PREFIX "[%s] EVENT-TRACE) %s : " arg1, name, __func__, ## args); \
 		} \
 	} while (0)
 #define EVENT_DBG(name, arg1, args...) \
 	do { \
 		if (android_msg_level & ANDROID_DBG_LEVEL) { \
-			printk(KERN_ERR "[dhd-%s] EVENT-DBG) %s : " arg1, name, __func__, ## args); \
+			printk(KERN_INFO DHD_LOG_PREFIX "[%s] EVENT-DBG) %s : " arg1, name, __func__, ## args); \
 		} \
 	} while (0)
 
@@ -61,7 +60,7 @@ struct wl_event_q {
 	s8 edata[1];
 };
 
-typedef s32(*EXT_EVENT_HANDLER) (struct net_device *dev, void *cb_argu,
+typedef void(*EXT_EVENT_HANDLER) (struct net_device *dev, void *cb_argu,
 	const wl_event_msg_t *e, void *data);
 
 typedef struct event_handler_list {

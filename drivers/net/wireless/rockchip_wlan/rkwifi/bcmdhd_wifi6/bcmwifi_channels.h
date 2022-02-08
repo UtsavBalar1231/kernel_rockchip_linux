@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Misc utility routines for WL and Apps
  * This header file housing the define and function prototype use by

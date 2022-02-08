@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Dongle BUS interface Abstraction layer
  *   target serial buses like USB, SDIO, SPI, etc.
@@ -288,7 +287,7 @@ typedef struct dbus_pub {
 	int ntxq, nrxq, rxsize;
 	void *bus;
 	struct shared_info *sh;
-    void *dev_info;
+	void *dev_info;
 } dbus_pub_t;
 
 #define BUS_INFO(bus, type) (((type *) bus)->pub->bus)

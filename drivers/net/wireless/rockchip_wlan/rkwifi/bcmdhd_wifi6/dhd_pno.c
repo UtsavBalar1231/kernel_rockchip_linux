@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Broadcom Dongle Host Driver (DHD)
  * Prefered Network Offload and Wi-Fi Location Service(WLS) code.
@@ -3091,7 +3090,7 @@ _dhd_pno_get_for_batch(dhd_pub_t *dhd, char *buf, int bufsize, int reason)
 	STATIC_ASSERT(sizeof(wl_pfn_net_info_v1_t) == sizeof(wl_pfn_net_info_v2_t));
 	STATIC_ASSERT(sizeof(wl_pfn_lnet_info_v1_t) == sizeof(wl_pfn_lnet_info_v2_t));
 	STATIC_ASSERT(sizeof(wl_pfn_subnet_info_v1_t) == sizeof(wl_pfn_subnet_info_v2_t));
-	STATIC_ASSERT(OFFSETOF(wl_pfn_subnet_info_v1_t, SSID) ==
+	ASSERT(OFFSETOF(wl_pfn_subnet_info_v1_t, SSID) ==
 	              OFFSETOF(wl_pfn_subnet_info_v2_t, u.SSID));
 
 	DHD_PNO(("%s enter\n", __FUNCTION__));
@@ -3454,8 +3453,15 @@ exit:
 	}
 	mutex_unlock(&_pno_state->pno_mutex);
 exit_no_unlock:
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+	if (waitqueue_active(&_pno_state->get_batch_done)) {
+		_pno_state->batch_recvd = TRUE;
+		wake_up(&_pno_state->get_batch_done);
+	}
+#else
 	if (waitqueue_active(&_pno_state->get_batch_done.wait))
 		complete(&_pno_state->get_batch_done);
+#endif
 	return err;
 }
 
@@ -3535,8 +3541,15 @@ dhd_pno_get_for_batch(dhd_pub_t *dhd, char *buf, int bufsize, int reason)
 		params_batch->get_batch.bufsize = bufsize;
 		params_batch->get_batch.reason = reason;
 		params_batch->get_batch.bytes_written = 0;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+		_pno_state->batch_recvd = FALSE;
+#endif
 		schedule_work(&_pno_state->work);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+		wait_event(_pno_state->get_batch_done, _pno_state->batch_recvd);
+#else
 		wait_for_completion(&_pno_state->get_batch_done);
+#endif
 	}
 
 #ifdef GSCAN_SUPPORT
@@ -4333,7 +4346,12 @@ dhd_pno_event_handler(dhd_pub_t *dhd, wl_event_msg_t *event, void *event_data)
 	{
 		struct dhd_pno_batch_params *params_batch;
 		params_batch = &_pno_state->pno_params_arr[INDEX_OF_BATCH_PARAMS].params_batch;
-		if (!waitqueue_active(&_pno_state->get_batch_done.wait)) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+		if (!waitqueue_active(&_pno_state->get_batch_done))
+#else
+		if (!waitqueue_active(&_pno_state->get_batch_done.wait))
+#endif
+		{
 			DHD_PNO(("%s : WLC_E_PFN_BEST_BATCHING\n", __FUNCTION__));
 			params_batch->get_batch.buf = NULL;
 			params_batch->get_batch.bufsize = 0;
@@ -4373,7 +4391,11 @@ int dhd_pno_init(dhd_pub_t *dhd)
 	_pno_state->dhd = dhd;
 	mutex_init(&_pno_state->pno_mutex);
 	INIT_WORK(&_pno_state->work, _dhd_pno_get_batch_handler);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+	init_waitqueue_head(&_pno_state->get_batch_done);
+#else
 	init_completion(&_pno_state->get_batch_done);
+#endif
 #ifdef GSCAN_SUPPORT
 	init_waitqueue_head(&_pno_state->batch_get_wait);
 #endif /* GSCAN_SUPPORT */

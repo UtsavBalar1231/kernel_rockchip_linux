@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Misc utility routines used by kernel or app-level.
  * Contents are wifi-specific, used by any kernel or app-level

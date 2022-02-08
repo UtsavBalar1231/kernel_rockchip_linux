@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * bcm_ring.h : Ring context abstraction
  * The ring context tracks the WRITE and READ indices where elements may be

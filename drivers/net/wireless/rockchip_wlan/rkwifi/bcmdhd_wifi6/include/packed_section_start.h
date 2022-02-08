@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Declare directives for structure packing. No padding will be provided
  * between the members of packed structures, and therefore, there is no

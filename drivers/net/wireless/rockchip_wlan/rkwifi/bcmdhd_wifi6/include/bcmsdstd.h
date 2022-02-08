@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  *  'Standard' SDIO HOST CONTROLLER driver
  *

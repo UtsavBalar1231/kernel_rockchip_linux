@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * SDIO access interface for drivers - linux specific (pci only)
  *

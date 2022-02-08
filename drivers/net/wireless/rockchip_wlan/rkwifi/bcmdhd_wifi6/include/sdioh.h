@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * SDIO Host Controller Spec header file
  * Register map and definitions for the Standard Host Controller

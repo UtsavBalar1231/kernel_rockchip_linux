@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /** @file pcie_core.c
  *
  * Contains PCIe related functions that are shared between different driver models (e.g. firmware

@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Table that encodes the srom formats for PCI/PCIe NICs.
  *
