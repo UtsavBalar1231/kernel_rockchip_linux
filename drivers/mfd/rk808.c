@@ -20,6 +20,7 @@
  * more details.
  */
 
+#include <linux/delay.h>
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
 #include <linux/mfd/rk808.h>
@@ -1313,6 +1314,7 @@ static int rk808_probe(struct i2c_client *client,
 		return PTR_ERR(rk808->regmap);
 	}
 
+	mdelay(100);
 	if (on_source && off_source) {
 		ret = regmap_read(rk808->regmap, on_source, &on);
 		if (ret) {
@@ -1335,9 +1337,11 @@ static int rk808_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
+	mdelay(100);
 	if (of_property_prepare_fn)
 		of_property_prepare_fn(rk808, &client->dev);
 
+	mdelay(100);
 	for (i = 0; i < nr_pre_init_regs; i++) {
 		ret = regmap_update_bits(rk808->regmap,
 					 pre_init_reg[i].addr,
