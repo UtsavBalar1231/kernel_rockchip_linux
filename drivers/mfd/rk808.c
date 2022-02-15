@@ -1199,7 +1199,7 @@ static int rk808_probe(struct i2c_client *client,
 	rk808 = devm_kzalloc(&client->dev, sizeof(*rk808), GFP_KERNEL);
 	if (!rk808)
 		return -ENOMEM;
-	mdelay(100);
+	mdelay(200);
 	if (of_device_is_compatible(np, "rockchip,rk817") ||
 	    of_device_is_compatible(np, "rockchip,rk809")) {
 		pmic_id_msb = RK817_ID_MSB;
@@ -1303,17 +1303,19 @@ static int rk808_probe(struct i2c_client *client,
 			rk808->variant);
 		return -EINVAL;
 	}
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	mdelay(100);
 	rk808->i2c = client;
 	rk808_i2c_client = client;
 	i2c_set_clientdata(client, rk808);
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	mdelay(100);
 	rk808->regmap = devm_regmap_init_i2c(client, rk808->regmap_cfg);
 	if (IS_ERR(rk808->regmap)) {
 		dev_err(&client->dev, "regmap initialization failed\n");
 		return PTR_ERR(rk808->regmap);
 	}
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	mdelay(100);
 	if (on_source && off_source) {
 		ret = regmap_read(rk808->regmap, on_source, &on);
@@ -1336,17 +1338,19 @@ static int rk808_probe(struct i2c_client *client,
 		dev_err(&client->dev, "No interrupt support, no core IRQ\n");
 		return -EINVAL;
 	}
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	mdelay(100);
 	if (of_property_prepare_fn)
 		of_property_prepare_fn(rk808, &client->dev);
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	mdelay(100);
 	for (i = 0; i < nr_pre_init_regs; i++) {
+		dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 		ret = regmap_update_bits(rk808->regmap,
 					 pre_init_reg[i].addr,
 					 pre_init_reg[i].mask,
 					 pre_init_reg[i].value);
+		dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 		if (ret) {
 			dev_err(&client->dev,
 				"0x%x write err\n",
@@ -1354,8 +1358,10 @@ static int rk808_probe(struct i2c_client *client,
 			return ret;
 		}
 	}
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
+	mdelay(100);
 	if (pinctrl_init) {
+		dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 		ret = pinctrl_init(&client->dev, rk808);
 		if (ret)
 			return ret;
@@ -1368,7 +1374,7 @@ static int rk808_probe(struct i2c_client *client,
 		dev_err(&client->dev, "Failed to add irq_chip %d\n", ret);
 		return ret;
 	}
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	if (battery_irq_chip) {
 		ret = regmap_add_irq_chip(rk808->regmap, client->irq,
 					  IRQF_ONESHOT | IRQF_SHARED, -1,
@@ -1382,7 +1388,7 @@ static int rk808_probe(struct i2c_client *client,
 		}
 	}
 
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	ret = devm_mfd_add_devices(&client->dev, PLATFORM_DEVID_NONE,
 			      cells, nr_cells, NULL, 0,
 			      regmap_irq_get_domain(rk808->irq_data));
@@ -1403,14 +1409,14 @@ static int rk808_probe(struct i2c_client *client,
 			pm_shutdown = rk808->pm_pwroff_fn;
 		}
 	}
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	rk8xx_kobj = kobject_create_and_add("rk8xx", NULL);
 	if (rk8xx_kobj) {
 		ret = sysfs_create_file(rk8xx_kobj, &rk8xx_attrs.attr);
 		if (ret)
 			dev_err(&client->dev, "create rk8xx sysfs error\n");
 	}
-
+	//dev_err(&client->dev, "%s[%d]\n",__FUNCTION__,__LINE__);
 	if (!pm_power_off)
 		pm_power_off = rk808_pm_power_off_dummy;
 
