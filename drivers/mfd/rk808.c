@@ -1199,7 +1199,7 @@ static int rk808_probe(struct i2c_client *client,
 	rk808 = devm_kzalloc(&client->dev, sizeof(*rk808), GFP_KERNEL);
 	if (!rk808)
 		return -ENOMEM;
-
+	mdelay(100);
 	if (of_device_is_compatible(np, "rockchip,rk817") ||
 	    of_device_is_compatible(np, "rockchip,rk809")) {
 		pmic_id_msb = RK817_ID_MSB;
@@ -1226,7 +1226,7 @@ static int rk808_probe(struct i2c_client *client,
 
 	rk808->variant = ((msb << 8) | lsb) & RK8XX_ID_MSK;
 	dev_info(&client->dev, "chip id: 0x%x\n", (unsigned int)rk808->variant);
-
+	mdelay(100);
 	switch (rk808->variant) {
 	case RK805_ID:
 		rk808->regmap_cfg = &rk805_regmap_config;
@@ -1303,11 +1303,11 @@ static int rk808_probe(struct i2c_client *client,
 			rk808->variant);
 		return -EINVAL;
 	}
-
+	mdelay(100);
 	rk808->i2c = client;
 	rk808_i2c_client = client;
 	i2c_set_clientdata(client, rk808);
-
+	mdelay(100);
 	rk808->regmap = devm_regmap_init_i2c(client, rk808->regmap_cfg);
 	if (IS_ERR(rk808->regmap)) {
 		dev_err(&client->dev, "regmap initialization failed\n");
