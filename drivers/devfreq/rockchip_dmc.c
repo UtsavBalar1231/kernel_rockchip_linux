@@ -3251,12 +3251,13 @@ rockchip_dmcfreq_register_cooling_device(struct rockchip_dmcfreq *dmcfreq)
 static int rk3399_get_soc_info(struct device *dev, struct device_node *np,
 			       int *bin, int *process)
 {
-	int ret = 0, value = -EINVAL;
+	int ret = 0;
+	u8 value = -EINVAL;
 	if (!bin)
 		return 0;
 	if (of_property_match_string(np, "nvmem-cell-names",
 				     "performance") >= 0) {
-		ret = rockchip_get_efuse_value(np, "performance", &value);
+		ret = rockchip_nvmem_cell_read_u8(np, "performance", &value);
 		if (ret) {
 			dev_err(dev, "Failed to get soc performance value\n");
 			goto out;

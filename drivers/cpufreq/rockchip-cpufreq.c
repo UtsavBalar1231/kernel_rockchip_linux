@@ -153,7 +153,7 @@ static __maybe_unused int rk3399_get_soc_info(struct device *dev,
 
 	if (of_property_match_string(np, "nvmem-cell-names",
 				     "performance") >= 0) {
-		ret = rockchip_get_efuse_value(np, "performance", &value);
+		ret = rockchip_nvmem_cell_read_u8(np, "performance", &value);
 		if (ret) {
 			dev_err(dev, "Failed to get soc performance value\n");
 			goto out;
