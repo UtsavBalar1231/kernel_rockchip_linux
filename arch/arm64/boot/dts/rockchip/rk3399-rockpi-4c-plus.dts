@@ -104,6 +104,18 @@
 		regulator-always-on;
 	};
 
+	vcc3v3_pcie: vcc3v3-pcie-regulator {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pcie_drv>;
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-name = "vcc3v3_pcie";
+		vin-supply = <&vcc5v0_sys>;
+	};
+
 	vcc_phy: vcc-phy-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc_phy";
@@ -1299,15 +1311,15 @@
 };
 
 &pcie_phy {
-	status = "disabled";
+	status = "okay";
 };
 
 &pcie0 {
-	ep-gpios = <&gpio4 RK_PD3 GPIO_ACTIVE_HIGH>;
+	ep-gpios = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;
 	num-lanes = <4>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie_clkreqnb_cpm>;
-	status = "disalbed";
+	status = "okay";
 };
 
 &spi1 {
@@ -1462,6 +1474,13 @@
 		};
 	};
 
+	pcie {
+		pcie_drv: pcie-drv {
+			rockchip,pins =
+				<3 RK_PD1 RK_FUNC_GPIO &pcfg_pull_up_20ma>;
+			};
+	};
+
 	pmic {
 		pmic_int_l: pmic-int-l {
 			rockchip,pins =
@@ -1500,7 +1519,7 @@
 	    i2s0_8ch_bus: i2s0-8ch-bus {
 	        rockchip,pins =
 	            <3 24 RK_FUNC_1 &pcfg_pull_none>,
-	            <3 25 RK_FUNC_1 &pcfg_pull_none>,
+	            //<3 25 RK_FUNC_1 &pcfg_pull_none>,
 	            <3 26 RK_FUNC_1 &pcfg_pull_none>,
 	            <3 27 RK_FUNC_1 &pcfg_pull_none>,
 	            <3 31 RK_FUNC_1 &pcfg_pull_none>;
