@@ -53,7 +53,7 @@
 #define FTS_I2C_VTG_MAX_UV                  1800000
 #endif
 
-//#define CFG_SWAP_XY
+#define CFG_SWAP_XY
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
@@ -659,7 +659,10 @@ static int fts_input_report_b(struct fts_ts_data *data)
             input_report_abs(data->input_dev, ABS_MT_POSITION_Y, events[i].y);
 #else
             input_report_abs(data->input_dev, ABS_MT_POSITION_X, events[i].x);
-            input_report_abs(data->input_dev, ABS_MT_POSITION_Y, events[i].y);
+            // Radxa Customization
+            // input_report_abs(data->input_dev, ABS_MT_POSITION_Y, events[i].y);
+            input_report_abs(data->input_dev, ABS_MT_POSITION_Y, data->pdata->x_max - events[i].y);
+            // Radxa Customization end
 #endif
 			//printk("bb...x = %d, y - %d\n...", events[i].x, 2176 - events[i].y, events[i].p);
             touchs |= BIT(events[i].id);
