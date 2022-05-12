@@ -1,9 +1,8 @@
 /*
  *
- *  Driver for the 3Com Bluetooth PCMCIA card
+ *  Driver for Bluetooth PCMCIA cards with HCI UART interface
  *
  *  Copyright (C) 2001-2002  Marcel Holtmann <marcel@holtmann.org>
- *                           Jose Orlando Pereira <jop@di.uminho.pt>
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -39,10 +38,7 @@
 #include <linux/serial.h>
 #include <linux/serial_reg.h>
 #include <linux/bitops.h>
-#include <asm/io.h>
-
-#include <linux/device.h>
-#include <linux/firmware.h>
+#include <linux/io.h>
 
 #include <pcmcia/cistpl.h>
 #include <pcmcia/ciscode.h>
@@ -58,21 +54,20 @@
 
 
 MODULE_AUTHOR("Marcel Holtmann <marcel@holtmann.org>");
-MODULE_DESCRIPTION("Bluetooth driver for the 3Com Bluetooth PCMCIA card");
+MODULE_DESCRIPTION("Bluetooth driver for Bluetooth PCMCIA cards with HCI UART interface");
 MODULE_LICENSE("GPL");
-MODULE_FIRMWARE("BT3CPCC.bin");
 
 
 
 /* ======================== Local structures ======================== */
 
 
-struct bt3c_info {
+struct btuart_info {
 	struct pcmcia_device *p_dev;
 
 	struct hci_dev *hdev;
 
-	spinlock_t lock;		/* For serializing operations */
+	spinlock_t lock;	/* For serializing operations */
 
 	struct sk_buff_head txq;
 	unsigned long tx_state;
@@ -83,140 +78,104 @@ struct bt3c_info {
 };
 
 
-static int bt3c_config(struct pcmcia_device *link);
-static void bt3c_release(struct pcmcia_device *link);
+static int btuart_config(struct pcmcia_device *link);
+static void btuart_release(struct pcmcia_device *link);
 
-static void bt3c_detach(struct pcmcia_device *p_dev);
+static void btuart_detach(struct pcmcia_device *p_dev);
+
+
+/* Maximum baud rate */
+#define SPEED_MAX  115200
+
+/* Default baud rate: 57600, 115200, 230400 or 460800 */
+#define DEFAULT_BAUD_RATE  115200
 
 
 /* Transmit states  */
-#define XMIT_SENDING  1
-#define XMIT_WAKEUP   2
-#define XMIT_WAITING  8
+#define XMIT_SENDING	1
+#define XMIT_WAKEUP	2
+#define XMIT_WAITING	8
 
 /* Receiver states */
-#define RECV_WAIT_PACKET_TYPE   0
-#define RECV_WAIT_EVENT_HEADER  1
-#define RECV_WAIT_ACL_HEADER    2
-#define RECV_WAIT_SCO_HEADER    3
-#define RECV_WAIT_DATA          4
-
-
-
-/* ======================== Special I/O functions ======================== */
-
-
-#define DATA_L   0
-#define DATA_H   1
-#define ADDR_L   2
-#define ADDR_H   3
-#define CONTROL  4
-
-
-static inline void bt3c_address(unsigned int iobase, unsigned short addr)
-{
-	outb(addr & 0xff, iobase + ADDR_L);
-	outb((addr >> 8) & 0xff, iobase + ADDR_H);
-}
-
-
-static inline void bt3c_put(unsigned int iobase, unsigned short value)
-{
-	outb(value & 0xff, iobase + DATA_L);
-	outb((value >> 8) & 0xff, iobase + DATA_H);
-}
-
-
-static inline void bt3c_io_write(unsigned int iobase, unsigned short addr, unsigned short value)
-{
-	bt3c_address(iobase, addr);
-	bt3c_put(iobase, value);
-}
-
-
-static inline unsigned short bt3c_get(unsigned int iobase)
-{
-	unsigned short value = inb(iobase + DATA_L);
-
-	value |= inb(iobase + DATA_H) << 8;
-
-	return value;
-}
-
-
-static inline unsigned short bt3c_read(unsigned int iobase, unsigned short addr)
-{
-	bt3c_address(iobase, addr);
-
-	return bt3c_get(iobase);
-}
+#define RECV_WAIT_PACKET_TYPE	0
+#define RECV_WAIT_EVENT_HEADER	1
+#define RECV_WAIT_ACL_HEADER	2
+#define RECV_WAIT_SCO_HEADER	3
+#define RECV_WAIT_DATA		4
 
 
 
 /* ======================== Interrupt handling ======================== */
 
 
-static int bt3c_write(unsigned int iobase, int fifo_size, __u8 *buf, int len)
+static int btuart_write(unsigned int iobase, int fifo_size, __u8 *buf, int len)
 {
 	int actual = 0;
 
-	bt3c_address(iobase, 0x7080);
+	/* Tx FIFO should be empty */
+	if (!(inb(iobase + UART_LSR) & UART_LSR_THRE))
+		return 0;
 
 	/* Fill FIFO with current frame */
-	while (actual < len) {
+	while ((fifo_size-- > 0) && (actual < len)) {
 		/* Transmit next byte */
-		bt3c_put(iobase, buf[actual]);
+		outb(buf[actual], iobase + UART_TX);
 		actual++;
 	}
-
-	bt3c_io_write(iobase, 0x7005, actual);
 
 	return actual;
 }
 
 
-static void bt3c_write_wakeup(struct bt3c_info *info)
+static void btuart_write_wakeup(struct btuart_info *info)
 {
 	if (!info) {
 		BT_ERR("Unknown device");
 		return;
 	}
 
-	if (test_and_set_bit(XMIT_SENDING, &(info->tx_state)))
+	if (test_and_set_bit(XMIT_SENDING, &(info->tx_state))) {
+		set_bit(XMIT_WAKEUP, &(info->tx_state));
 		return;
+	}
 
 	do {
 		unsigned int iobase = info->p_dev->resource[0]->start;
 		register struct sk_buff *skb;
 		int len;
 
+		clear_bit(XMIT_WAKEUP, &(info->tx_state));
+
 		if (!pcmcia_dev_present(info->p_dev))
-			break;
+			return;
 
 		skb = skb_dequeue(&(info->txq));
-		if (!skb) {
-			clear_bit(XMIT_SENDING, &(info->tx_state));
+		if (!skb)
 			break;
-		}
 
 		/* Send frame */
-		len = bt3c_write(iobase, 256, skb->data, skb->len);
+		len = btuart_write(iobase, 16, skb->data, skb->len);
+		set_bit(XMIT_WAKEUP, &(info->tx_state));
 
-		if (len != skb->len)
-			BT_ERR("Very strange");
-
-		kfree_skb(skb);
+		if (len == skb->len) {
+			kfree_skb(skb);
+		} else {
+			skb_pull(skb, len);
+			skb_queue_head(&(info->txq), skb);
+		}
 
 		info->hdev->stat.byte_tx += len;
 
-	} while (0);
+	} while (test_bit(XMIT_WAKEUP, &(info->tx_state)));
+
+	clear_bit(XMIT_SENDING, &(info->tx_state));
 }
 
 
-static void bt3c_receive(struct bt3c_info *info)
+static void btuart_receive(struct btuart_info *info)
 {
 	unsigned int iobase;
-	int size = 0, avail;
+	int boguscount = 0;
 
 	if (!info) {
 		BT_ERR("Unknown device");
@@ -225,11 +184,7 @@ static void bt3c_receive(struct bt3c_info *info)
 
 	iobase = info->p_dev->resource[0]->start;
 
-	avail = bt3c_read(iobase, 0x7006);
-
-	bt3c_address(iobase, 0x7480);
-	while (size < avail) {
-		size++;
+	do {
 		info->hdev->stat.byte_rx++;
 
 		/* Allocate packet */
@@ -243,11 +198,9 @@ static void bt3c_receive(struct bt3c_info *info)
 			}
 		}
 
-
 		if (info->rx_state == RECV_WAIT_PACKET_TYPE) {
 
-			bt_cb(info->rx_skb)->pkt_type = inb(iobase + DATA_L);
-			inb(iobase + DATA_H);
+			bt_cb(info->rx_skb)->pkt_type = inb(iobase + UART_RX);
 
 			switch (bt_cb(info->rx_skb)->pkt_type) {
 
@@ -279,10 +232,7 @@ static void bt3c_receive(struct bt3c_info *info)
 
 		} else {
 
-			__u8 x = inb(iobase + DATA_L);
-
-			*skb_put(info->rx_skb, 1) = x;
-			inb(iobase + DATA_H);
+			*skb_put(info->rx_skb, 1) = inb(iobase + UART_RX);
 			info->rx_count--;
 
 			if (info->rx_count == 0) {
@@ -291,6 +241,7 @@ static void bt3c_receive(struct bt3c_info *info)
 				struct hci_event_hdr *eh;
 				struct hci_acl_hdr *ah;
 				struct hci_sco_hdr *sh;
+
 
 				switch (info->rx_state) {
 
@@ -324,17 +275,20 @@ static void bt3c_receive(struct bt3c_info *info)
 
 		}
 
-	}
+		/* Make sure we don't stay here too long */
+		if (boguscount++ > 16)
+			break;
 
-	bt3c_io_write(iobase, 0x7006, 0x0000);
+	} while (inb(iobase + UART_LSR) & UART_LSR_DR);
 }
 
 
-static irqreturn_t bt3c_interrupt(int irq, void *dev_inst)
+static irqreturn_t btuart_interrupt(int irq, void *dev_inst)
 {
-	struct bt3c_info *info = dev_inst;
+	struct btuart_info *info = dev_inst;
 	unsigned int iobase;
-	int iir;
+	int boguscount = 0;
+	int iir, lsr;
 	irqreturn_t r = IRQ_NONE;
 
 	if (!info || !info->hdev)
@@ -345,30 +299,38 @@ static irqreturn_t bt3c_interrupt(int irq, void *dev_inst)
 
 	spin_lock(&(info->lock));
 
-	iir = inb(iobase + CONTROL);
-	if (iir & 0x80) {
-		int stat = bt3c_read(iobase, 0x7001);
-
-		if ((stat & 0xff) == 0x7f) {
-			BT_ERR("Very strange (stat=0x%04x)", stat);
-		} else if ((stat & 0xff) != 0xff) {
-			if (stat & 0x0020) {
-				int status = bt3c_read(iobase, 0x7002) & 0x10;
-				BT_INFO("%s: Antenna %s", info->hdev->name,
-							status ? "out" : "in");
-			}
-			if (stat & 0x0001)
-				bt3c_receive(info);
-			if (stat & 0x0002) {
-				clear_bit(XMIT_SENDING, &(info->tx_state));
-				bt3c_write_wakeup(info);
-			}
-
-			bt3c_io_write(iobase, 0x7001, 0x0000);
-
-			outb(iir, iobase + CONTROL);
-		}
+	iir = inb(iobase + UART_IIR) & UART_IIR_ID;
+	while (iir) {
 		r = IRQ_HANDLED;
+
+		/* Clear interrupt */
+		lsr = inb(iobase + UART_LSR);
+
+		switch (iir) {
+		case UART_IIR_RLSI:
+			BT_ERR("RLSI");
+			break;
+		case UART_IIR_RDI:
+			/* Receive interrupt */
+			btuart_receive(info);
+			break;
+		case UART_IIR_THRI:
+			if (lsr & UART_LSR_THRE) {
+				/* Transmitter ready for data */
+				btuart_write_wakeup(info);
+			}
+			break;
+		default:
+			BT_ERR("Unhandled IIR=%#x", iir);
+			break;
+		}
+
+		/* Make sure we don't stay here too long */
+		if (boguscount++ > 100)
+			break;
+
+		iir = inb(iobase + UART_IIR) & UART_IIR_ID;
+
 	}
 
 	spin_unlock(&(info->lock));
@@ -377,13 +339,65 @@ static irqreturn_t bt3c_interrupt(int irq, void *dev_inst)
 }
 
 
+static void btuart_change_speed(struct btuart_info *info,
+				unsigned int speed)
+{
+	unsigned long flags;
+	unsigned int iobase;
+	int fcr;		/* FIFO control reg */
+	int lcr;		/* Line control reg */
+	int divisor;
+
+	if (!info) {
+		BT_ERR("Unknown device");
+		return;
+	}
+
+	iobase = info->p_dev->resource[0]->start;
+
+	spin_lock_irqsave(&(info->lock), flags);
+
+	/* Turn off interrupts */
+	outb(0, iobase + UART_IER);
+
+	divisor = SPEED_MAX / speed;
+
+	fcr = UART_FCR_ENABLE_FIFO | UART_FCR_CLEAR_RCVR | UART_FCR_CLEAR_XMIT;
+
+	/* 
+	 * Use trigger level 1 to avoid 3 ms. timeout delay at 9600 bps, and
+	 * almost 1,7 ms at 19200 bps. At speeds above that we can just forget
+	 * about this timeout since it will always be fast enough. 
+	 */
+
+	if (speed < 38400)
+		fcr |= UART_FCR_TRIGGER_1;
+	else
+		fcr |= UART_FCR_TRIGGER_14;
+
+	/* Bluetooth cards use 8N1 */
+	lcr = UART_LCR_WLEN8;
+
+	outb(UART_LCR_DLAB | lcr, iobase + UART_LCR);	/* Set DLAB */
+	outb(divisor & 0xff, iobase + UART_DLL);	/* Set speed */
+	outb(divisor >> 8, iobase + UART_DLM);
+	outb(lcr, iobase + UART_LCR);	/* Set 8N1  */
+	outb(fcr, iobase + UART_FCR);	/* Enable FIFO's */
+
+	/* Turn on interrupts */
+	outb(UART_IER_RLSI | UART_IER_RDI | UART_IER_THRI, iobase + UART_IER);
+
+	spin_unlock_irqrestore(&(info->lock), flags);
+}
+
+
 
 /* ======================== HCI interface ======================== */
 
 
-static int bt3c_hci_flush(struct hci_dev *hdev)
+static int btuart_hci_flush(struct hci_dev *hdev)
 {
-	struct bt3c_info *info = hci_get_drvdata(hdev);
+	struct btuart_info *info = hci_get_drvdata(hdev);
 
 	/* Drop TX queue */
 	skb_queue_purge(&(info->txq));
@@ -392,24 +406,23 @@ static int bt3c_hci_flush(struct hci_dev *hdev)
 }
 
 
-static int bt3c_hci_open(struct hci_dev *hdev)
+static int btuart_hci_open(struct hci_dev *hdev)
 {
 	return 0;
 }
 
 
-static int bt3c_hci_close(struct hci_dev *hdev)
+static int btuart_hci_close(struct hci_dev *hdev)
 {
-	bt3c_hci_flush(hdev);
+	btuart_hci_flush(hdev);
 
 	return 0;
 }
 
 
-static int bt3c_hci_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
+static int btuart_hci_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 {
-	struct bt3c_info *info = hci_get_drvdata(hdev);
-	unsigned long flags;
+	struct btuart_info *info = hci_get_drvdata(hdev);
 
 	switch (bt_cb(skb)->pkt_type) {
 	case HCI_COMMAND_PKT:
@@ -427,11 +440,7 @@ static int bt3c_hci_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 	memcpy(skb_push(skb, 1), &bt_cb(skb)->pkt_type, 1);
 	skb_queue_tail(&(info->txq), skb);
 
-	spin_lock_irqsave(&(info->lock), flags);
-
-	bt3c_write_wakeup(info);
-
-	spin_unlock_irqrestore(&(info->lock), flags);
+	btuart_write_wakeup(info);
 
 	return 0;
 }
@@ -441,101 +450,11 @@ static int bt3c_hci_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 /* ======================== Card services HCI interaction ======================== */
 
 
-static int bt3c_load_firmware(struct bt3c_info *info,
-			      const unsigned char *firmware,
-			      int count)
+static int btuart_open(struct btuart_info *info)
 {
-	char *ptr = (char *) firmware;
-	char b[9];
-	unsigned int iobase, tmp;
-	unsigned long size, addr, fcs;
-	int i, err = 0;
-
-	iobase = info->p_dev->resource[0]->start;
-
-	/* Reset */
-	bt3c_io_write(iobase, 0x8040, 0x0404);
-	bt3c_io_write(iobase, 0x8040, 0x0400);
-
-	udelay(1);
-
-	bt3c_io_write(iobase, 0x8040, 0x0404);
-
-	udelay(17);
-
-	/* Load */
-	while (count) {
-		if (ptr[0] != 'S') {
-			BT_ERR("Bad address in firmware");
-			err = -EFAULT;
-			goto error;
-		}
-
-		memset(b, 0, sizeof(b));
-		memcpy(b, ptr + 2, 2);
-		if (kstrtoul(b, 16, &size) < 0)
-			return -EINVAL;
-
-		memset(b, 0, sizeof(b));
-		memcpy(b, ptr + 4, 8);
-		if (kstrtoul(b, 16, &addr) < 0)
-			return -EINVAL;
-
-		memset(b, 0, sizeof(b));
-		memcpy(b, ptr + (size * 2) + 2, 2);
-		if (kstrtoul(b, 16, &fcs) < 0)
-			return -EINVAL;
-
-		memset(b, 0, sizeof(b));
-		for (tmp = 0, i = 0; i < size; i++) {
-			memcpy(b, ptr + (i * 2) + 2, 2);
-			tmp += simple_strtol(b, NULL, 16);
-		}
-
-		if (((tmp + fcs) & 0xff) != 0xff) {
-			BT_ERR("Checksum error in firmware");
-			err = -EILSEQ;
-			goto error;
-		}
-
-		if (ptr[1] == '3') {
-			bt3c_address(iobase, addr);
-
-			memset(b, 0, sizeof(b));
-			for (i = 0; i < (size - 4) / 2; i++) {
-				memcpy(b, ptr + (i * 4) + 12, 4);
-				tmp = simple_strtoul(b, NULL, 16);
-				bt3c_put(iobase, tmp);
-			}
-		}
-
-		ptr   += (size * 2) + 6;
-		count -= (size * 2) + 6;
-	}
-
-	udelay(17);
-
-	/* Boot */
-	bt3c_address(iobase, 0x3000);
-	outb(inb(iobase + CONTROL) | 0x40, iobase + CONTROL);
-
-error:
-	udelay(17);
-
-	/* Clear */
-	bt3c_io_write(iobase, 0x7006, 0x0000);
-	bt3c_io_write(iobase, 0x7005, 0x0000);
-	bt3c_io_write(iobase, 0x7001, 0x0000);
-
-	return err;
-}
-
-
-static int bt3c_open(struct bt3c_info *info)
-{
-	const struct firmware *firmware;
+	unsigned long flags;
+	unsigned int iobase = info->p_dev->resource[0]->start;
 	struct hci_dev *hdev;
-	int err;
 
 	spin_lock_init(&(info->lock));
 
@@ -558,54 +477,65 @@ static int bt3c_open(struct bt3c_info *info)
 	hci_set_drvdata(hdev, info);
 	SET_HCIDEV_DEV(hdev, &info->p_dev->dev);
 
-	hdev->open  = bt3c_hci_open;
-	hdev->close = bt3c_hci_close;
-	hdev->flush = bt3c_hci_flush;
-	hdev->send  = bt3c_hci_send_frame;
+	hdev->open  = btuart_hci_open;
+	hdev->close = btuart_hci_close;
+	hdev->flush = btuart_hci_flush;
+	hdev->send  = btuart_hci_send_frame;
 
-	/* Load firmware */
-	err = request_firmware(&firmware, "BT3CPCC.bin", &info->p_dev->dev);
-	if (err < 0) {
-		BT_ERR("Firmware request failed");
-		goto error;
-	}
+	spin_lock_irqsave(&(info->lock), flags);
 
-	err = bt3c_load_firmware(info, firmware->data, firmware->size);
+	/* Reset UART */
+	outb(0, iobase + UART_MCR);
 
-	release_firmware(firmware);
+	/* Turn off interrupts */
+	outb(0, iobase + UART_IER);
 
-	if (err < 0) {
-		BT_ERR("Firmware loading failed");
-		goto error;
-	}
+	/* Initialize UART */
+	outb(UART_LCR_WLEN8, iobase + UART_LCR);	/* Reset DLAB */
+	outb((UART_MCR_DTR | UART_MCR_RTS | UART_MCR_OUT2), iobase + UART_MCR);
+
+	/* Turn on interrupts */
+	// outb(UART_IER_RLSI | UART_IER_RDI | UART_IER_THRI, iobase + UART_IER);
+
+	spin_unlock_irqrestore(&(info->lock), flags);
+
+	btuart_change_speed(info, DEFAULT_BAUD_RATE);
 
 	/* Timeout before it is safe to send the first HCI packet */
 	msleep(1000);
 
 	/* Register HCI device */
-	err = hci_register_dev(hdev);
-	if (err < 0) {
+	if (hci_register_dev(hdev) < 0) {
 		BT_ERR("Can't register HCI device");
-		goto error;
+		info->hdev = NULL;
+		hci_free_dev(hdev);
+		return -ENODEV;
 	}
 
 	return 0;
-
-error:
-	info->hdev = NULL;
-	hci_free_dev(hdev);
-	return err;
 }
 
 
-static int bt3c_close(struct bt3c_info *info)
+static int btuart_close(struct btuart_info *info)
 {
+	unsigned long flags;
+	unsigned int iobase = info->p_dev->resource[0]->start;
 	struct hci_dev *hdev = info->hdev;
 
 	if (!hdev)
 		return -ENODEV;
 
-	bt3c_hci_close(hdev);
+	btuart_hci_close(hdev);
+
+	spin_lock_irqsave(&(info->lock), flags);
+
+	/* Reset UART */
+	outb(0, iobase + UART_MCR);
+
+	/* Turn off interrupts */
+	outb(0, iobase + UART_IER);
+
+	spin_unlock_irqrestore(&(info->lock), flags);
 
 	hci_unregister_dev(hdev);
 	hci_free_dev(hdev);
@@ -613,9 +543,9 @@ static int bt3c_close(struct bt3c_info *info)
 	return 0;
 }
 
-static int bt3c_probe(struct pcmcia_device *link)
+static int btuart_probe(struct pcmcia_device *link)
 {
-	struct bt3c_info *info;
+	struct btuart_info *info;
 
 	/* Create new info device */
 	info = devm_kzalloc(&link->dev, sizeof(*info), GFP_KERNEL);
@@ -628,16 +558,16 @@ static int bt3c_probe(struct pcmcia_device *link)
 	link->config_flags |= CONF_ENABLE_IRQ | CONF_AUTO_SET_VPP |
 		CONF_AUTO_SET_IO;
 
-	return bt3c_config(link);
+	return btuart_config(link);
 }
 
 
-static void bt3c_detach(struct pcmcia_device *link)
+static void btuart_detach(struct pcmcia_device *link)
 {
-	bt3c_release(link);
+	btuart_release(link);
 }
 
-static int bt3c_check_config(struct pcmcia_device *p_dev, void *priv_data)
+static int btuart_check_config(struct pcmcia_device *p_dev, void *priv_data)
 {
 	int *try = priv_data;
 
@@ -654,8 +584,8 @@ static int bt3c_check_config(struct pcmcia_device *p_dev, void *priv_data)
 	return pcmcia_request_io(p_dev);
 }
 
-static int bt3c_check_config_notpicky(struct pcmcia_device *p_dev,
-				      void *priv_data)
+static int btuart_check_config_notpicky(struct pcmcia_device *p_dev,
+					void *priv_data)
 {
 	static unsigned int base[5] = { 0x3f8, 0x2f8, 0x3e8, 0x2e8, 0x0 };
 	int j;
@@ -676,29 +606,29 @@ static int bt3c_check_config_notpicky(struct pcmcia_device *p_dev,
 	return -ENODEV;
 }
 
-static int bt3c_config(struct pcmcia_device *link)
+static int btuart_config(struct pcmcia_device *link)
 {
-	struct bt3c_info *info = link->priv;
+	struct btuart_info *info = link->priv;
 	int i;
-	unsigned long try;
+	int try;
 
 	/* First pass: look for a config entry that looks normal.
 	   Two tries: without IO aliases, then with aliases */
 	for (try = 0; try < 2; try++)
-		if (!pcmcia_loop_config(link, bt3c_check_config, (void *) try))
+		if (!pcmcia_loop_config(link, btuart_check_config, &try))
 			goto found_port;
 
 	/* Second pass: try to find an entry that isn't picky about
 	   its base address, then try to grab any standard serial port
 	   address, and finally try to get any free port. */
-	if (!pcmcia_loop_config(link, bt3c_check_config_notpicky, NULL))
+	if (!pcmcia_loop_config(link, btuart_check_config_notpicky, NULL))
 		goto found_port;
 
 	BT_ERR("No usable port range found");
 	goto failed;
 
 found_port:
-	i = pcmcia_request_irq(link, &bt3c_interrupt);
+	i = pcmcia_request_irq(link, btuart_interrupt);
 	if (i != 0)
 		goto failed;
 
@@ -706,38 +636,37 @@ found_port:
 	if (i != 0)
 		goto failed;
 
-	if (bt3c_open(info) != 0)
+	if (btuart_open(info) != 0)
 		goto failed;
 
 	return 0;
 
 failed:
-	bt3c_release(link);
+	btuart_release(link);
 	return -ENODEV;
 }
 
 
-static void bt3c_release(struct pcmcia_device *link)
+static void btuart_release(struct pcmcia_device *link)
 {
-	struct bt3c_info *info = link->priv;
+	struct btuart_info *info = link->priv;
 
-	bt3c_close(info);
+	btuart_close(info);
 
 	pcmcia_disable_device(link);
 }
 
-
-static const struct pcmcia_device_id bt3c_ids[] = {
-	PCMCIA_DEVICE_PROD_ID13("3COM", "Bluetooth PC Card", 0xefce0a31, 0xd4ce9b02),
+static const struct pcmcia_device_id btuart_ids[] = {
+	/* don't use this driver. Use serial_cs + hci_uart instead */
 	PCMCIA_DEVICE_NULL
 };
-MODULE_DEVICE_TABLE(pcmcia, bt3c_ids);
+MODULE_DEVICE_TABLE(pcmcia, btuart_ids);
 
-static struct pcmcia_driver bt3c_driver = {
+static struct pcmcia_driver btuart_driver = {
 	.owner		= THIS_MODULE,
-	.name		= "bt3c_cs",
-	.probe		= bt3c_probe,
-	.remove		= bt3c_detach,
-	.id_table	= bt3c_ids,
+	.name		= "btuart_cs",
+	.probe		= btuart_probe,
+	.remove		= btuart_detach,
+	.id_table	= btuart_ids,
 };
-module_pcmcia_driver(bt3c_driver);
+module_pcmcia_driver(btuart_driver);

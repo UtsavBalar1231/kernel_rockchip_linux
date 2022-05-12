@@ -51,7 +51,7 @@
  */
 struct ti_st {
 	struct hci_dev *hdev;
-	int reg_status;
+	char reg_status;
 	long (*st_write) (struct sk_buff *);
 	struct completion wait_reg_completion;
 };
@@ -83,7 +83,7 @@ static inline void ti_st_tx_complete(struct ti_st *hst, int pkt_type)
  * status.ti_st_open() function will wait for signal from this
  * API when st_register() function returns ST_PENDING.
  */
-static void st_reg_completion_cb(void *priv_data, int data)
+static void st_reg_completion_cb(void *priv_data, char data)
 {
 	struct ti_st *lhst = priv_data;
 
@@ -93,7 +93,8 @@ static void st_reg_completion_cb(void *priv_data, int data)
 	complete(&lhst->wait_reg_completion);
 }
 
-/* Called by Shared Transport layer when receive data is available */
+/* Called by Shared Transport layer when receive data is
+ * available */
 static long st_receive(void *priv_data, struct sk_buff *skb)
 {
 	struct ti_st *lhst = priv_data;
@@ -197,8 +198,7 @@ static int ti_st_open(struct hci_dev *hdev)
 		}
 
 		/* Is ST registration callback
-		 * called with ERROR status?
-		 */
+		 * called with ERROR status? */
 		if (hst->reg_status != 0) {
 			BT_ERR("ST registration completed with invalid "
 					"status %d", hst->reg_status);
@@ -245,23 +245,22 @@ static int ti_st_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct ti_st *hst;
 	long len;
-	int pkt_type;
 
 	hst = hci_get_drvdata(hdev);
 
 	/* Prepend skb with frame type */
-	memcpy(skb_push(skb, 1), &hci_skb_pkt_type(skb), 1);
+	memcpy(skb_push(skb, 1), &bt_cb(skb)->pkt_type, 1);
 
-	BT_DBG("%s: type %d len %d", hdev->name, hci_skb_pkt_type(skb),
-	       skb->len);
+	BT_DBG("%s: type %d len %d", hdev->name, bt_cb(skb)->pkt_type,
+			skb->len);
 
 	/* Insert skb to shared transport layer's transmit queue.
 	 * Freeing skb memory is taken care in shared transport layer,
 	 * so don't free skb memory here.
 	 */
-	pkt_type = hci_skb_pkt_type(skb);
 	len = hst->st_write(skb);
 	if (len < 0) {
+		kfree_skb(skb);
 		BT_ERR("ST write failed (%ld)", len);
 		/* Try Again, would only fail if UART has gone bad */
 		return -EAGAIN;
@@ -269,14 +268,14 @@ static int ti_st_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 
 	/* ST accepted our skb. So, Go ahead and do rest */
 	hdev->stat.byte_tx += len;
-	ti_st_tx_complete(hst, pkt_type);
+	ti_st_tx_complete(hst, bt_cb(skb)->pkt_type);
 
 	return 0;
 }
 
 static int bt_ti_probe(struct platform_device *pdev)
 {
-	struct ti_st *hst;
+	static struct ti_st *hst;
 	struct hci_dev *hdev;
 	int err;
 
@@ -309,7 +308,7 @@ static int bt_ti_probe(struct platform_device *pdev)
 	BT_DBG("HCI device registered (hdev %p)", hdev);
 
 	dev_set_drvdata(&pdev->dev, hst);
-	return 0;
+	return err;
 }
 
 static int bt_ti_remove(struct platform_device *pdev)

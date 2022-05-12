@@ -48,10 +48,6 @@
 / {
 	compatible = "rockchip,android", "rockchip,rk3399";
 
-	chosen: chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 swiotlb=1 coherent_pool=1m";
-	};
-
 	cpuinfo {
 		compatible = "rockchip,cpuinfo";
 		nvmem-cells = <&cpu_id>;
@@ -133,13 +129,15 @@
 		rockchip,codec = <&hdmi>, <&cdn_dp>;
 	};
 
+/*
 	firmware {
 		firmware_android: android {};
 	};
+*/
 };
 
 &uart2 {
-	status = "disabled";
+	status = "okay";
 };
 
 &vopb {

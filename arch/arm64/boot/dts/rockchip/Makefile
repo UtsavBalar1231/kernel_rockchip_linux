@@ -67,3 +67,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399pro-evb-lp4-v11-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399pro-evb-v10-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399pro-evb-v11-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399pro-evb-v14-linux.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-rockpi-4b.dtb
