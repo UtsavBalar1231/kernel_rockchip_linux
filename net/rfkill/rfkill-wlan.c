@@ -162,7 +162,9 @@ int get_wifi_chip_type(void)
         type = WIFI_MVL88W8977;
     } else if (strcmp(wifi_chip_type_string, "ssv6051") == 0) {
         type = WIFI_SSV6051;
-    } else {
+    } else if (strcmp(wifi_chip_type_string, "rtl8822cs") == 0) {
+        type = WIFI_RTL8822CS;
+    }else {
         type = WIFI_AP6210;
     }
     return type;
