@@ -315,14 +315,16 @@ static void h5_handle_internal_rx(struct hci_uart *hu)
 	} else if (memcmp(data, conf_req, 2) == 0) {
 		h5_link_control(hu, conf_rsp, 2);
 		h5_link_control(hu, conf_req, 3);
-	} else if (memcmp(data, conf_rsp, 2) == 0) {
-		if (H5_HDR_LEN(hdr) > 2)
-			h5->tx_win = (data[2] & 7);
-		BT_DBG("Three-wire init complete. tx_win %u", h5->tx_win);
-		h5->state = H5_ACTIVE;
-		hci_uart_init_ready(hu);
-		return;
-	} else if (memcmp(data, sleep_req, 2) == 0) {
+		} 
+	//	else if (memcmp(data, conf_rsp, 2) == 0) {
+	// 	if (H5_HDR_LEN(hdr) > 2)
+	// 		h5->tx_win = (data[2] & 7);
+	// 	BT_DBG("Three-wire init complete. tx_win %u", h5->tx_win);
+	// 	h5->state = H5_ACTIVE;
+	// 	hci_uart_init_ready(hu);
+	// 	return;
+	//} 
+	else if (memcmp(data, sleep_req, 2) == 0) {
 		BT_DBG("Peer went to sleep");
 		h5->sleep = H5_SLEEPING;
 		return;
@@ -511,7 +513,7 @@ static void h5_reset_rx(struct h5 *h5)
 	clear_bit(H5_RX_ESC, &h5->flags);
 }
 
-static int h5_recv(struct hci_uart *hu, const void *data, int count)
+static int h5_recv(struct hci_uart *hu, void *data, int count)
 {
 	struct h5 *h5 = hu->priv;
 	const unsigned char *ptr = data;
@@ -743,9 +745,8 @@ static int h5_flush(struct hci_uart *hu)
 	return 0;
 }
 
-static const struct hci_uart_proto h5p = {
+static struct hci_uart_proto h5p = {
 	.id		= HCI_UART_3WIRE,
-	.name		= "Three-wire (H5)",
 	.open		= h5_open,
 	.close		= h5_close,
 	.recv		= h5_recv,
