@@ -1602,7 +1602,7 @@
 				<&cru PCLK_VIO_GRF>;
 			clock-names = "dphy-ref", "dphy-cfg", "grf";
 			power-domains = <&power RK3399_PD_VIO>;
-			status = "disabled";
+			status = "okay";
 		};
 
 		pvtm: pvtm {
@@ -1937,7 +1937,7 @@
 		devfreq = <&dmc>;
 		power-domains = <&power RK3399_PD_ISP0>;
 		iommus = <&isp0_mmu>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	isp0_mmu: iommu@ff914000 {
@@ -1950,7 +1950,7 @@
 		clock-names = "aclk", "hclk";
 		power-domains = <&power RK3399_PD_ISP0>;
 		rk_iommu,disable_reset_quirk;
-		status = "disabled";
+		status = "okay";
 	};
 
 	rkisp1_1: rkisp1@ff920000 {
@@ -1968,7 +1968,7 @@
 		devfreq = <&dmc>;
 		power-domains = <&power RK3399_PD_ISP1>;
 		iommus = <&isp1_mmu>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	isp1_mmu: iommu@ff924000 {
@@ -1981,7 +1981,7 @@
 		clock-names = "aclk", "hclk";
 		power-domains = <&power RK3399_PD_ISP1>;
 		rk_iommu,disable_reset_quirk;
-		status = "disabled";
+		status = "okay";
 	};
 
 	hdmi: hdmi@ff940000 {
