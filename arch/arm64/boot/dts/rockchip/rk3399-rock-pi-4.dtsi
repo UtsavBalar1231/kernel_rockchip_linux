@@ -230,10 +230,10 @@
 	wireless_wlan: wireless-wlan {
 		compatible = "wlan-platdata";
 		rockchip,grf = <&grf>;
-		wifi_chip_type = "ap6256";
+		wifi_chip_type = "rtl8822cs";
 		sdio_vref = <1800>;
 		WIFI,host_wake_irq = <&gpio0 3 GPIO_ACTIVE_HIGH>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	bt_uart0: wireless_bluetooth: wireless-bluetooth {
@@ -249,7 +249,7 @@
 		BT,reset_gpio    = <&gpio0 9 GPIO_ACTIVE_HIGH>;
 		BT,wake_gpio     = <&gpio2 27 GPIO_ACTIVE_HIGH>;
 		BT,wake_host_irq = <&gpio0 4 GPIO_ACTIVE_HIGH>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	gpio-leds {
@@ -319,7 +319,7 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
-	sd-uhs-sdr104;
+	//sd-uhs-sdr104;
 	status = "okay";
 };
 
@@ -618,7 +618,7 @@
 
 &i2c4 {
 	camera1: camera-module@10 {
-		status = "disabled";
+		status = "okay";
 		compatible = "sony,imx219";
 		reg = <0x10>;
 
@@ -636,7 +636,7 @@
 	};
 
 	camera2: camera-module@36 {
-		status = "disabled";
+		status = "okay";
 		compatible = "ovti,ov5647";
 		reg = <0x36>;
 
