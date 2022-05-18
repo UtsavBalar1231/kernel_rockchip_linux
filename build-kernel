@@ -19,6 +19,8 @@
 # Enviromental Variables
 DATE=$(date +"%d.%m.%y")
 OUT_DIR=$(pwd)/out/
+
+PATH=$HOME/gcc-arm64/bin:$HOME/gcc-arm/bin:$PATH
 FILENAME=${OUT_DIR}/boot.img
 KERNEL_IMAGE="${OUT_DIR}/arch/arm64/boot/Image"
 DTB_FILE="${OUT_DIR}/arch/arm64/boot/dts/rockchip/rk3399-rock-pi-4b.dtb"
@@ -30,11 +32,11 @@ fi
 
 ARGS="ARCH=arm64 \
 O=${OUT_DIR} \
-CROSS_COMPILE=aarch64-linux-gnu-
-CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+CROSS_COMPILE=aarch64-elf- \
+CROSS_COMPILE_COMPAT=arm-eabi- \
 -j${KEBABS}"
 
-export CROSS_COMPILE=aarch64-linux-gnu-
+export CROSS_COMPILE=aarch64-elf-
 
 if [[ "$@" =~ "debian"* ]]; then
 	echo -e "###### USING DEBIAN EXTLINUX CONFIG #####"
