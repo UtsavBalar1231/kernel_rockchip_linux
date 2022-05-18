@@ -14,6 +14,8 @@
  *
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/gpio/consumer.h>
@@ -637,7 +639,7 @@ static int imx219_write_regs(struct imx219 *imx219,
 	for (i = 0; i < len; i++) {
 		ret = imx219_write_reg(imx219, regs[i].address, 1, regs[i].val);
 		if (ret) {
-			dev_err_ratelimited(&client->dev,
+			pr_err_ratelimited(
 					    "Failed to write reg 0x%4.4x. error = %d\n",
 					    regs[i].address, ret);
 
@@ -786,7 +788,7 @@ static int imx219_set_ctrl(struct v4l2_ctrl *ctrl)
 				       IMX219_REG_VALUE_16BIT, ctrl->val);
 		break;
 	default:
-		dev_info(&client->dev,
+		pr_info(
 			 "ctrl(id:0x%x,val:0x%x) is not handled\n",
 			 ctrl->id, ctrl->val);
 		ret = -EINVAL;
@@ -1045,13 +1047,13 @@ static int imx219_start_streaming(struct imx219 *imx219)
 	reg_list = &imx219->mode->reg_list;
 	ret = imx219_write_regs(imx219, reg_list->regs, reg_list->num_of_regs);
 	if (ret) {
-		dev_err(&client->dev, "%s failed to set mode\n", __func__);
+		pr_err( "%s failed to set mode\n", __func__);
 		goto err_rpm_put;
 	}
 
 	ret = imx219_set_framefmt(imx219);
 	if (ret) {
-		dev_err(&client->dev, "%s failed to set frame format: %d\n",
+		pr_err( "%s failed to set frame format: %d\n",
 			__func__, ret);
 		goto err_rpm_put;
 	}
@@ -1087,7 +1089,7 @@ static void imx219_stop_streaming(struct imx219 *imx219)
 	ret = imx219_write_reg(imx219, IMX219_REG_MODE_SELECT,
 			       IMX219_REG_VALUE_08BIT, IMX219_MODE_STANDBY);
 	if (ret)
-		dev_err(&client->dev, "%s failed to set stream\n", __func__);
+		pr_err( "%s failed to set stream\n", __func__);
 
 	__v4l2_ctrl_grab(imx219->vflip, false);
 	__v4l2_ctrl_grab(imx219->hflip, false);
@@ -1140,14 +1142,14 @@ static int imx219_power_on(struct device *dev)
 	ret = regulator_bulk_enable(IMX219_NUM_SUPPLIES,
 				    imx219->supplies);
 	if (ret) {
-		dev_err(dev, "%s: failed to enable regulators\n",
+		pr_err( "%s: failed to enable regulators\n",
 			__func__);
 		return ret;
 	}
 
 	ret = clk_prepare_enable(imx219->xclk);
 	if (ret) {
-		dev_err(dev, "%s: failed to enable clock\n",
+		pr_err( "%s: failed to enable clock\n",
 			__func__);
 		goto reg_off;
 	}
@@ -1231,13 +1233,16 @@ static int imx219_identify_module(struct imx219 *imx219)
 	ret = imx219_read_reg(imx219, IMX219_REG_CHIP_ID,
 			      IMX219_REG_VALUE_16BIT, &val);
 	if (ret) {
-		dev_err(&client->dev, "failed to read chip id %x\n",
-			IMX219_CHIP_ID);
+		pr_err("failed to read chip id required: %x | but found :%x\n",
+			IMX219_CHIP_ID, val);
 		return ret;
+	}
+	else {
+		pr_info("Hurrah chip id is valid!!!!!!!!!!!!!");
 	}
 
 	if (val != IMX219_CHIP_ID) {
-		dev_err(&client->dev, "chip id mismatch: %x!=%x\n",
+		pr_err( "chip id mismatch: %x!= our chip: %x\n",
 			IMX219_CHIP_ID, val);
 		return -EIO;
 	}
@@ -1365,7 +1370,7 @@ static int imx219_init_controls(struct imx219 *imx219)
 
 	if (ctrl_hdlr->error) {
 		ret = ctrl_hdlr->error;
-		dev_err(&client->dev, "%s control init failed (%d)\n",
+		pr_err( "%s control init failed (%d)\n",
 			__func__, ret);
 		goto error;
 	}
@@ -1406,30 +1411,30 @@ static int imx219_check_hwcfg(struct device *dev)
 
 	endpoint = fwnode_graph_get_next_endpoint(dev_fwnode(dev), NULL);
 	if (!endpoint) {
-		dev_err(dev, "endpoint node not found\n");
+		pr_err( "endpoint node not found\n");
 		return -EINVAL;
 	}
 
 	if (v4l2_fwnode_endpoint_alloc_parse(endpoint, &ep_cfg)) {
-		dev_err(dev, "could not parse endpoint\n");
+		pr_err( "could not parse endpoint\n");
 		goto error_out;
 	}
 
 	/* Check the number of MIPI CSI2 data lanes */
 	if (ep_cfg.bus.mipi_csi2.num_data_lanes != 2) {
-		dev_err(dev, "only 2 data lanes are currently supported\n");
+		pr_err( "only 2 data lanes are currently supported\n");
 		goto error_out;
 	}
 
 	/* Check the link frequency set in device tree */
 	if (!ep_cfg.nr_of_link_frequencies) {
-		dev_err(dev, "link-frequency property not found in DT\n");
+		pr_err( "link-frequency property not found in DT\n");
 		goto error_out;
 	}
 
 	if (ep_cfg.nr_of_link_frequencies != 1 ||
 	    ep_cfg.link_frequencies[0] != IMX219_DEFAULT_LINK_FREQ) {
-		dev_err(dev, "Link frequency not supported: %lld\n",
+		pr_err( "Link frequency not supported: %lld\n",
 			ep_cfg.link_frequencies[0]);
 		goto error_out;
 	}
@@ -1462,20 +1467,20 @@ static int imx219_probe(struct i2c_client *client)
 	/* Get system clock (xclk) */
 	imx219->xclk = devm_clk_get(dev, NULL);
 	if (IS_ERR(imx219->xclk)) {
-		dev_err(dev, "failed to get xclk\n");
+		pr_err( "failed to get xclk\n");
 		return PTR_ERR(imx219->xclk);
 	}
 
 	imx219->xclk_freq = clk_get_rate(imx219->xclk);
 	if (imx219->xclk_freq != IMX219_XCLK_FREQ) {
-		dev_err(dev, "xclk frequency not supported: %d Hz\n",
+		pr_err( "xclk frequency not supported: %d Hz\n",
 			imx219->xclk_freq);
 		return -EINVAL;
 	}
 
 	ret = imx219_get_regulators(imx219);
 	if (ret) {
-		dev_err(dev, "failed to get regulators\n");
+		pr_err( "failed to get regulators\n");
 		return ret;
 	}
 
@@ -1533,15 +1538,17 @@ static int imx219_probe(struct i2c_client *client)
 
 	ret = media_entity_pads_init(&imx219->sd.entity, 1, &imx219->pad);
 	if (ret) {
-		dev_err(dev, "failed to init entity pads: %d\n", ret);
-		goto error_handler_free;
+		pr_err( "failed to init entity pads: %d\n", ret);
+		goto error_power_off;
 	}
 
 	ret = v4l2_async_register_subdev_sensor(&imx219->sd);
 	if (ret < 0) {
-		dev_err(dev, "failed to register sensor sub-device: %d\n", ret);
+		pr_err( "failed to register sensor sub-device: %d\n", ret);
 		goto error_media_entity;
 	}
+
+	pr_err("Huraah probed successfully!!!!!!!!!!!!!!!!!!!!");
 
 	/* Enable runtime PM and turn off the device */
 	pm_runtime_set_active(dev);
@@ -1553,8 +1560,8 @@ static int imx219_probe(struct i2c_client *client)
 error_media_entity:
 	media_entity_cleanup(&imx219->sd.entity);
 
-error_handler_free:
-	imx219_free_controls(imx219);
+//error_handler_free:
+//	imx219_free_controls(imx219);
 
 error_power_off:
 	imx219_power_off(dev);
@@ -1576,14 +1583,23 @@ static int imx219_remove(struct i2c_client *client)
 		imx219_power_off(&client->dev);
 	pm_runtime_set_suspended(&client->dev);
 
+	pr_err("Removed device sucessfully!!!!!!!");
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id imx219_dt_ids[] = {
 	{ .compatible = "sony,imx219" },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, imx219_dt_ids);
+#endif
+
+static const struct i2c_device_id imx219_match_id[] = {
+        { "sony,imx219", 0 },
+        { },
+};
+
 
 static const struct dev_pm_ops imx219_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(imx219_suspend, imx219_resume)
@@ -1593,14 +1609,27 @@ static const struct dev_pm_ops imx219_pm_ops = {
 static struct i2c_driver imx219_i2c_driver = {
 	.driver = {
 		.name = "imx219",
-		.of_match_table	= imx219_dt_ids,
 		.pm = &imx219_pm_ops,
+		.of_match_table = of_match_ptr(imx219_dt_ids),
 	},
-	.probe_new = imx219_probe,
-	.remove = imx219_remove,
+	.probe_new	= imx219_probe,
+	.remove		= &imx219_remove,
+	.id_table	= imx219_match_id,
 };
 
-module_i2c_driver(imx219_i2c_driver);
+static int __init sensor_mod_init(void)
+{
+        return i2c_add_driver(&imx219_i2c_driver);
+}
+
+static void __exit sensor_mod_exit(void)
+{
+        i2c_del_driver(&imx219_i2c_driver);
+}
+
+device_initcall_sync(sensor_mod_init);
+module_exit(sensor_mod_exit);
+
 
 MODULE_AUTHOR("Dave Stevenson <dave.stevenson@raspberrypi.com");
 MODULE_DESCRIPTION("Sony IMX219 sensor driver");
