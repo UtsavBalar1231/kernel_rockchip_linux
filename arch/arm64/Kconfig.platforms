@@ -234,6 +234,14 @@ config ARCH_ROCKCHIP
 	  This enables support for the ARMv8 based Rockchip chipsets,
 	  like the RK3368.
 
+if ARCH_ROCKCHIP
+
+config BOARD_VAAMAN
+	bool "Rk3399 based SBC with FPGA built-in"
+	help
+	    This enabled support for VAAMAN rk3399 board device.
+endif
+
 config ARCH_S32
 	bool "NXP S32 SoC Family"
 	help

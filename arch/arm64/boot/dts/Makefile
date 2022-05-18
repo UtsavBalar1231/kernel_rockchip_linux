@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
+
+ifeq ($(CONFIG_ARCH_ROCKCHIP),)
 subdir-y += actions
 subdir-y += allwinner
 subdir-y += altera
@@ -23,7 +25,6 @@ subdir-y += nvidia
 subdir-y += qcom
 subdir-y += realtek
 subdir-y += renesas
-subdir-y += rockchip
 subdir-y += socionext
 subdir-y += sprd
 subdir-y += synaptics
@@ -31,3 +32,6 @@ subdir-y += tesla
 subdir-y += ti
 subdir-y += toshiba
 subdir-y += xilinx
+else
+subdir-y += rockchip
+endif
