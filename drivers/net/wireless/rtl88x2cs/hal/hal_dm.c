@@ -1036,7 +1036,7 @@ void GetHalODMVar(
 }
 
 #ifdef RTW_HALMAC
-#include "../hal_halmac.h"
+#include "../hal/hal_halmac.h"
 #endif
 
 int rtw_phydm_rfe_ctrl_gpio(

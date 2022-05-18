@@ -24,13 +24,13 @@
  *****************************************************************************/
 
 /*Image2HeaderVersion: R3 1.5.10*/
-#include "mp_precomp.h"
+#include "../../mp_precomp.h"
 
 #define ODM_WIN 0x08
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 #if RT_PLATFORM == PLATFORM_MACOSX
-#include "phydm_precomp.h"
+#include "../../phydm_precomp.h"
 #else
 #include "../phydm_precomp.h"
 #endif

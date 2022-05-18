@@ -1926,7 +1926,7 @@ static s32 xmitframe_swencrypt(_adapter *padapter, struct xmit_frame *pxmitframe
 			break;
 		case _AES_:
 		case _CCMP_256_:
-			rtw_aes_encrypt(padapter, (u8 *)pxmitframe);
+			rtw_aes_rtk_encrypt(padapter, (u8 *)pxmitframe);
 			break;
 		case _GCMP_:
 		case _GCMP_256_:

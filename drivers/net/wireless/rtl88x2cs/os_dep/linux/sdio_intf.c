@@ -16,7 +16,7 @@
 
 #include <drv_types.h>
 #include <hal_data.h>
-#include <platform_ops.h>
+#include "../../platform/platform_ops.h"
 
 #ifndef CONFIG_SDIO_HCI
 #error "CONFIG_SDIO_HCI shall be on!\n"

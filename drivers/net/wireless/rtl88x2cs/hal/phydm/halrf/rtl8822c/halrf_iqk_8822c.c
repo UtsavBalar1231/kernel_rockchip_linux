@@ -23,10 +23,12 @@
  *
  *****************************************************************************/
 
-#include "mp_precomp.h"
+#include "../../mp_precomp.h"
+#include "../../phydm_types.h"
+
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 #if RT_PLATFORM == PLATFORM_MACOSX
-#include "phydm_precomp.h"
+#include "../../phydm_precomp.h"
 #else
 #include "../phydm_precomp.h"
 #endif
@@ -474,7 +476,7 @@ _iqk_btc_wait_indirect_reg_ready_8822c(struct dm_struct *dm)
 	/* wait for ready bit before access 0x1700 */
 	while (1) {
 		if ((odm_read_1byte(dm, 0x1703) & BIT(5)) == 0) {
-			delay_ms(10);
+			ODM_delay_ms(10);
 			if (++delay_count >= 10)
 			break;
 		} else {
