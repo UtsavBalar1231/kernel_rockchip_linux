@@ -15,6 +15,19 @@
 	};
 };
 
+&board_leds {
+	status = "okay";
+
+	led1 {
+		status = "okay";
+	};
+
+	led2 {
+		status = "okay";
+	};
+};
+
+
 &i2c6 {
 	status = "okay";
 };

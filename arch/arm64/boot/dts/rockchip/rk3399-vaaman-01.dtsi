@@ -17,6 +17,27 @@
 		mmc1 = &sdhci;
 	};
 
+	board_leds: board-leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&board_led1_gpio>, <&board_led2_gpio>;
+		status = "disabled";
+
+		board-led1 {
+			label = "power";
+			gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+			status = "disabled";
+		};
+
+		board-led2 {
+			label = "status";
+			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+			status = "disabled";
+		};
+	};
+
 	chosen {
 		stdout-path = "serial2:1500000n8";
 	};
@@ -629,6 +650,16 @@
 };
 
 &pinctrl {
+	board-leds {
+		board_led1_gpio: board-led1-gpio {
+			rockchip,pins = <3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		board_led2_gpio: board-led2-gpio {
+			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	bt {
 		bt_enable_h: bt-enable-h {
 			rockchip,pins = <0 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
