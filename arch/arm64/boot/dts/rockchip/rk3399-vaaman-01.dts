@@ -15,6 +15,26 @@
 	};
 };
 
+&i2c6 {
+	status = "okay";
+};
+
+&imx219 {
+	status = "okay";
+};
+
+&isp0 {
+	status = "okay";
+};
+
+&isp0_mmu {
+	status = "okay";
+};
+
+&mipi_dphy_rx0 {
+	status = "okay";
+};
+
 &sdio0 {
 	status = "okay";
 

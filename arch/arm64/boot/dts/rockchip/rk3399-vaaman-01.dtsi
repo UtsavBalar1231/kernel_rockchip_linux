@@ -28,6 +28,39 @@
 		#clock-cells = <0>;
 	};
 
+	imx219_clk: imx219_clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+
+	imx219_vana_2v8:  cam_2p8v {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_vana";
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	imx219_vdig_1v8: cam_1p8b {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_vdig";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	imx219_vddl_1v2: cam_1p2v {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_vddl";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&rk808 1>;
@@ -469,9 +502,32 @@
 };
 
 &i2c4 {
-	i2c-scl-rising-time-ns = <600>;
-	i2c-scl-falling-time-ns = <20>;
 	status = "okay";
+
+	imx219: imx219@10 {
+		status = "disabled";
+		compatible = "sony,imx219";
+		reg = <0x10>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_en>;
+		clocks = <&imx219_clk>;
+		clock-names = "xclk";
+		xclr-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		VANA-supply = <&imx219_vana_2v8>;
+		VDIG-supply = <&imx219_vdig_1v8>;
+		VDDL-supply = <&imx219_vddl_1v2>;
+
+		port {
+			imx219_ep: endpoint {
+				clock-lanes = <0>;
+				clock-noncontinuous;
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <456000000>;
+				remote-endpoint = <&mipi_in_ucam0>;
+			};
+		};
+	};
 };
 
 &i2s0 {
@@ -508,6 +564,48 @@
 	gpio1830-supply = <&vcc_3v0>;
 };
 
+&isp0 {
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp0_mipi_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dphy_rx0_out>;
+			data-lanes = <1 2>;
+		};
+	};
+};
+
+&mipi_dphy_rx0 {
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&imx219_ep>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy_rx0_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&isp0_mipi_in>;
+			};
+		};
+	};
+};
 
 &pcie_phy {
 	status = "okay";
@@ -544,6 +642,24 @@
 			rockchip,pins = <2 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+
+        cam_pins {
+                cam_en: i2c4-enable-pins {
+                        rockchip,pins =
+                                <1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+                };
+
+		enable: enable-pins {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		camled: cam_led_pins {
+			rockchip,pins =
+				<2 RK_PB3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+        };
+
 
 	es8316 {
 		hp_detect: hp-detect {
