@@ -18,11 +18,11 @@
 &board_leds {
 	status = "okay";
 
-	led1 {
+	board-led1 {
 		status = "okay";
 	};
 
-	led2 {
+	board-led2 {
 		status = "okay";
 	};
 };
