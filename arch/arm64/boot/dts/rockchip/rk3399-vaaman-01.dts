@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022 VICHARAK IN
+ */
+
+/dts-v1/;
+#include "rk3399-vaaman-01.dtsi"
+
+/ {
+	model = "VICHARAK VAAMAN V0.1";
+	compatible = "vicharak,vaaman", "vicharak,vaaman-01", "rockchip,rk3399";
+
+	aliases {
+		mmc2 = &sdio0;
+	};
+};
