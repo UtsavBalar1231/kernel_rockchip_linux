@@ -1224,8 +1224,13 @@ static int hci_uart_set_flags(struct hci_uart *hu, unsigned long flags)
  *
  * Return Value:    Command dependent
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+static int hci_uart_tty_ioctl(struct tty_struct *tty, unsigned int cmd,
+			      unsigned long arg)
+#else
 static int hci_uart_tty_ioctl(struct tty_struct *tty, struct file *file,
 			      unsigned int cmd, unsigned long arg)
+#endif
 {
 	struct hci_uart *hu = (void *)tty->disc_data;
 	int err = 0;
