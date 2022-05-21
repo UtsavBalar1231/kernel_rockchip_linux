@@ -835,6 +835,10 @@
 };
 
 &rkisp1_0 {
+        status = "okay";
+};
+
+&rkisp1_1 {
 	status = "okay";
 	port {
 		#address-cells = <1>;
@@ -885,8 +889,9 @@
 
 
 &isp1_mmu {
-	status = "disabled";
+    status = "okay";
 };
+
 
 
 &cpu_l0 {

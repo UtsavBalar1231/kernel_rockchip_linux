@@ -2002,7 +2002,7 @@
 		devfreq = <&dmc>;
 		power-domains = <&power RK3399_PD_ISP1>;
 		iommus = <&isp1_mmu>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	isp1_mmu: iommu@ff924000 {
@@ -2015,7 +2015,7 @@
 		#iommu-cells = <0>;
 		power-domains = <&power RK3399_PD_ISP1>;
 		rockchip,disable-mmu-reset;
-		status = "disabled";
+		status = "okay";
 	};
 
 	hdmi_sound: hdmi-sound {
@@ -2145,7 +2145,7 @@
 			"grf", "pclk_mipi_dsi";
 		rockchip,grf = <&grf>;
 		power-domains = <&power RK3399_PD_VIO>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	edp: edp@ff970000 {
