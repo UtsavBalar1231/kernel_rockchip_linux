@@ -41,9 +41,12 @@ export CROSS_COMPILE=aarch64-elf-
 if [[ "$@" =~ "debian"* ]]; then
 	echo -e "###### USING DEBIAN EXTLINUX CONFIG #####"
 	EXTLINUX_CONF=extlinux/rk3399-debian.conf
-else
+elif [[ "$@" =~ "manjaro"* ]]; then
 	echo -e "###### USING MANAJRO EXTLINUX CONFIG #####"
 	EXTLINUX_CONF=extlinux/rk3399-manjaro.conf
+else
+	echo -e "###### USING DEBIAN 11 EXTLINUX CONFIG #####"
+	EXTLINUX_CONF=extlinux/rk3399.conf
 fi
 
 rm ${KERNEL_IMAGE} ${DTB_FILE} ${FILENAME}
@@ -67,4 +70,9 @@ mcopy -i $FILENAME -s $EXTLINUX_CONF ::/extlinux/extlinux.conf
 mcopy -i $FILENAME -s $KERNEL_IMAGE ::
 mcopy -i $FILENAME -s $DTB_FILE ::/rk3399-vaaman-rev01.dtb
 
+sudo cp /home/utsav/linux/out/boot.img /home/vegg/linux-next/out/
+
+echo "Kernel pushed on VEGG"
+
 cd $(pwd) || exit
+
