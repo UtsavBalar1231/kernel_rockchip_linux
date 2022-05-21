@@ -546,7 +546,7 @@ struct imx219 {
 
 	struct clk *xclk; /* system clock to IMX219 */
 	u32 xclk_freq;
-
+	struct gpio_desc *pwdn_gpio;
 	struct gpio_desc *reset_gpio;
 	struct regulator_bulk_data supplies[IMX219_NUM_SUPPLIES];
 
@@ -632,7 +632,7 @@ static int imx219_write_reg(struct imx219 *imx219, u16 reg, u32 len, u32 val)
 static int imx219_write_regs(struct imx219 *imx219,
 			     const struct imx219_reg *regs, u32 len)
 {
-	struct i2c_client *client = v4l2_get_subdevdata(&imx219->sd);
+	struct __maybe_unused i2c_client *client = v4l2_get_subdevdata(&imx219->sd);
 	unsigned int i;
 	int ret;
 
@@ -1148,6 +1148,12 @@ static int imx219_power_on(struct device *dev)
 	}
 
 	ret = clk_prepare_enable(imx219->xclk);
+
+	if (!IS_ERR(imx219->pwdn_gpio)) {
+		gpiod_set_value_cansleep(imx219->pwdn_gpio, 1);
+		msleep(10);
+	}
+
 	if (ret) {
 		pr_err( "%s: failed to enable clock\n",
 			__func__);
@@ -1174,6 +1180,11 @@ static int imx219_power_off(struct device *dev)
 	gpiod_set_value_cansleep(imx219->reset_gpio, 0);
 	regulator_bulk_disable(IMX219_NUM_SUPPLIES, imx219->supplies);
 	clk_disable_unprepare(imx219->xclk);
+
+	if (!IS_ERR(imx219->pwdn_gpio)) {
+		gpiod_set_value_cansleep(imx219->pwdn_gpio, 0);
+		msleep(10);
+	}
 
 	return 0;
 }
@@ -1226,7 +1237,7 @@ static int imx219_get_regulators(struct imx219 *imx219)
 /* Verify chip ID */
 static int imx219_identify_module(struct imx219 *imx219)
 {
-	struct i2c_client *client = v4l2_get_subdevdata(&imx219->sd);
+	struct __maybe_unused i2c_client *client = v4l2_get_subdevdata(&imx219->sd);
 	int ret;
 	u32 val;
 
@@ -1238,7 +1249,7 @@ static int imx219_identify_module(struct imx219 *imx219)
 		return ret;
 	}
 	else {
-		pr_info("Hurrah chip id is valid!!!!!!!!!!!!!");
+		pr_info("Hurrah chip id is valid!!!!!!!!!!!!!\nCHIP ID: %x", val);
 	}
 
 	if (val != IMX219_CHIP_ID) {
@@ -1499,6 +1510,12 @@ static int imx219_probe(struct i2c_client *client)
 	ret = imx219_identify_module(imx219);
 	if (ret)
 		goto error_power_off;
+
+	imx219->pwdn_gpio = devm_gpiod_get(dev, "pwdn", GPIOD_OUT_LOW);
+	if (IS_ERR(imx219->pwdn_gpio))
+		pr_err("Failed to get pwdn-gpios\n");
+	gpiod_set_value_cansleep(imx219->pwdn_gpio, 1);
+	msleep(5);
 
 	/* Set default mode to max resolution */
 	imx219->mode = &supported_modes[0];
