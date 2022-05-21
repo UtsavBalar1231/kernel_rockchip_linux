@@ -3,6 +3,21 @@
 menu "Bluetooth device drivers"
 	depends on BT
 
+config RTKBT
+	tristate "Realtek Bluetooth driver"
+	default n
+	help
+	  Realtek Bluetooth driver
+	  This driver supports various realtek blueototh chipsets
+	  with sdio, usb and uart interfaces.
+
+          Say Y here to compile support for Realtek Bluetooth driver into the
+          kernel or say M to compile as a module.
+
+if RTKBT
+source "drivers/bluetooth/rtkbt/Kconfig"
+endif
+
 config BT_INTEL
 	tristate
 	select REGMAP
