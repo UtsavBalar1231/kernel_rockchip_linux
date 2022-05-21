@@ -3,6 +3,21 @@
 menu "Bluetooth device drivers"
 	depends on BT
 
+config RTKBT
+	tristate "Realtek Bluetooth driver"
+	default n
+	help
+	  Realtek Bluetooth driver
+	  This driver supports various realtek blueototh chipsets
+	  with sdio, usb and uart interfaces.
+
+          Say Y here to compile support for Realtek Bluetooth driver into the
+          kernel or say M to compile as a module.
+
+if RTKBT
+source "drivers/bluetooth/rtkbt/Kconfig"
+endif
+
 config BT_INTEL
 	tristate
 	select REGMAP
@@ -96,7 +111,7 @@ config BT_HCIUART_SERDEV
 
 config BT_HCIUART_H4
 	bool "UART (H4) protocol support"
-	depends on BT_HCIUART
+	depends on BT_HCIUART && !RTKBT_UART
 	help
 	  UART (H4) is serial protocol for communication between Bluetooth
 	  device and host. This protocol is required for most Bluetooth devices
@@ -158,7 +173,7 @@ config BT_HCIUART_LL
 
 config BT_HCIUART_3WIRE
 	bool "Three-wire UART (H5) protocol support"
-	depends on BT_HCIUART
+	depends on BT_HCIUART && !RTKBT_UART
 	depends on BT_HCIUART_SERDEV
 	help
 	  The HCI Three-wire UART Transport Layer makes it possible to
