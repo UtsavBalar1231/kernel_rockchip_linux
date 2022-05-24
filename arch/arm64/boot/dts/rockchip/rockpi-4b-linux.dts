@@ -50,6 +50,10 @@
 	compatible = "rockchip,rockpi","rockchip,rk3399";
 };
 
+&sdio_pwrseq {
+	status = "okay";
+};
+
 &wireless_wlan {
 	status = "okay";
 };
