@@ -1290,7 +1290,6 @@ static void dw_mipi_dsi_encoder_enable(struct drm_encoder *encoder)
 		 dsi->lane_mbps, dsi->slave ? dsi->lanes * 2 : dsi->lanes);
 
 	dw_mipi_dsi_vop_routing(dsi);
-	dw_mipi_dsi_pre_init(dsi);
 	dw_mipi_dsi_pre_enable(dsi);
 
 	if (dsi->panel)
