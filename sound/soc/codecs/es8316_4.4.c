@@ -986,7 +986,7 @@ static int es8316_suspend(struct snd_soc_component *codec)
 
 static int es8316_resume(struct snd_soc_component *codec)
 {
-	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(codec);
+	__maybe_unused struct es8316_priv *es8316 = snd_soc_component_get_drvdata(codec);
 	int ret;
 
 	es8316_reset(codec); /* UPDATED BY DAVID,15-3-5 */
