@@ -41,6 +41,9 @@ export CROSS_COMPILE=aarch64-linux-gnu-
 if [[ "$@" =~ "debian"* ]]; then
 	echo -e "###### USING DEBIAN EXTLINUX CONFIG #####"
 	EXTLINUX_CONF=extlinux/rk3399-debian.conf
+elif [[ "$@" =~ "manjarog"* ]]; then
+	echo -e "###### USING MANAJRO GNOME EXTLINUX CONFIG #####"
+	EXTLINUX_CONF=extlinux/rk3399-manjaro-gnome.conf
 elif [[ "$@" =~ "manjaro"* ]]; then
 	echo -e "###### USING MANAJRO EXTLINUX CONFIG #####"
 	EXTLINUX_CONF=extlinux/rk3399-manjaro.conf
