@@ -52,16 +52,124 @@
 
 / {
 
+	osc26m: osc26m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
+
+
 	fiq_debugger: fiq-debugger {
 		status = "disabled";
 		compatible = "rockchip,fiq-debugger";
 		rockchip,serial-id = <2>;
 		rockchip,signal-irq = <182>;
 		rockchip,wake-irq = <0>;
-		rockchip,irq-mode-enable = <1>;  /* If enable uart uses irq instead of fiq */
+		/* If enable uart uses irq instead of fiq */
+		rockchip,irq-mode-enable = <1>;
 		rockchip,baudrate = <1500000>;  /* Only 115200 and 1500000 */
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart2c_xfer>;
+	};
+
+	osc26m: osc26m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+	};
+
+	backlight: backlight {
+		status = "okay";
+		compatible = "pwm-backlight";
+		pwms = <&pwm2 0 25000 0>;
+		brightness-levels = <
+			  0  20  20  21  21  22  22  23
+			 23  24  24  25  25  26  26  27
+			 27  28  28  29  29  30  30  31
+			 31  32  32  33  33  34  34  35
+			 35  36  36  37  37  38  38  39
+			 40  41  42  43  44  45  46  47
+			 48  49  50  51  52  53  54  55
+			 56  57  58  59  60  61  62  63
+			 64  65  66  67  68  69  70  71
+			 72  73  74  75  76  77  78  79
+			 80  81  82  83  84  85  86  87
+			 88  89  90  91  92  93  94  95
+			 96  97  98  99 100 101 102 103
+			104 105 106 107 108 109 110 111
+			112 113 114 115 116 117 118 119
+			120 121 122 123 124 125 126 127
+			128 129 130 131 132 133 134 135
+			136 137 138 139 140 141 142 143
+			144 145 146 147 148 149 150 151
+			152 153 154 155 156 157 158 159
+			160 161 162 163 164 165 166 167
+			168 169 170 171 172 173 174 175
+			176 177 178 179 180 181 182 183
+			184 185 186 187 188 189 190 191
+			192 193 194 195 196 197 198 199
+			200 201 202 203 204 205 206 207
+			208 209 210 211 212 213 214 215
+			216 217 218 219 220 221 222 223
+			224 225 226 227 228 229 230 231
+			232 233 234 235 236 237 238 239
+			240 241 242 243 244 245 246 247
+			248 249 250 251 252 253 254 255
+		>;
+		default-brightness-level = <200>;
+		enable-gpios = <&gpio3 31 GPIO_ACTIVE_HIGH>;
+	};
+
+	panel@0 {
+		compatible = "simple-panel";
+		backlight = <&backlight>;
+		enable-gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+		prepare-delay-ms = <120>;
+		reset-delay-ms = <120>;
+		init-delay-ms = <120>;
+		enable-delay-ms = <100>;
+		disable-delay-ms = <120>;
+		unprepare-delay-ms = <120>;
+
+		width-mm = <154>;
+		height-mm = <86>;
+
+		dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
+				MIPI_DSI_MODE_LPM | MIPI_DSI_MODE_EOT_PACKET)>;
+		dsi,format = <MIPI_DSI_FMT_RGB888>;
+		dsi,lanes = <4>;
+
+		display-timings {
+			native-mode = <&timing0>;
+
+			timing0: timing0 {
+				clock-frequency = <49000000>;
+				hactive = <1024>;
+				vactive = <600>;
+				hback-porch = <90>;
+				hfront-porch = <90>;
+				vback-porch = <10>;
+				vfront-porch = <10>;
+				hsync-len = <90>;
+				vsync-len = <10>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <0>;
+				pixelclk-active = <0>;
+			};
+		};
+
+//		port {
+//			panel_in_vopl: endpoint {
+//				remote-endpoint = <&vopl_out_panel>;
+//			};
+//		};
+
+		port {
+			panel_out_bridge: endpoint {
+				remote-endpoint = <&bridge_out_panel>;
+			};
+		};
 	};
 
 	vcc1v8_s0: vcc1v8-s0 {
@@ -303,8 +411,78 @@
 	#sound-dai-cells = <0>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&hdmi_i2c_xfer>, <&hdmi_cec>;
-	status = "okay";
+	status = "disabled";
+	rockchip,phy-table =
+		<74250000 0x8009 0x0004 0x0272>,
+		<165000000 0x802b 0x0004 0x0209>,
+		<297000000 0x8039 0x0005 0x028d>,
+		<594000000 0x8039 0x0000 0x019d>,
+		<000000000 0x0000 0x0000 0x0000>;
 };
+
+&dsi {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+
+			dsi_out_bridge: endpoint {
+				remote-endpoint = <&bridge_in_dsi>;
+			};
+		};
+	};
+
+/*
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+
+			dsi_out_icn6211: endpoint {
+				remote-endpoint = <&icn6211_in_dsi>;
+			};
+		};
+	};
+*/
+};
+
+/*
+&vopl {
+	status = "okay";
+	assigned-clocks = <&cru DCLK_VOP1_DIV>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	ports {
+		port@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			reg = <1>;
+			vopl_in_icn6211: endpoint@0 {
+				remote-endpoint = <&icn6211_out_vopl>;
+			};
+		};
+
+		port@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			reg = <2>;
+			vopl_out_panel: endpoint@5 {
+				remote-endpoint = <&panel_in_vopl>;
+			};
+		};
+	};
+};
+*/
 
 &sdmmc {
 	supports-sd;
@@ -441,6 +619,28 @@
 		vddio-supply = <&vcc_1v8>;
 
 		regulators {
+
+			vccio_3v3_lcd: SWITCH_REG2 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-name = "vccio_3v3";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vdd3v3_tp: LDO_REG9 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+
+				regulator-name = "vdd3v3_tp";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
 			vdd_center: DCDC_REG1 {
 				regulator-name = "vdd_center";
 				regulator-min-microvolt = <750000>;
@@ -591,14 +791,6 @@
 				};
 			};
 
-			vcc3v3_s0: SWITCH_REG2 {
-				regulator-name = "vcc3v3_s0";
-				regulator-always-on;
-				regulator-boot-on;
-				regulator-state-mem {
-					regulator-on-in-suspend;
-				};
-			};
 		};
 	};
 
@@ -655,8 +847,8 @@
 
 &i2c1 {
 	status = "okay";
-	i2c-scl-rising-time-ns = <300>;
-	i2c-scl-falling-time-ns = <15>;
+	//i2c-scl-rising-time-ns = <300>;
+	//i2c-scl-falling-time-ns = <15>;
 
 	es8316: es8316@11 {
 		#sound-dai-cells = <0>;
@@ -689,6 +881,66 @@
 		max-y = <480>;
 		tp-size = <911>;
 	};
+
+	bridge@2c {
+		compatible = "chipone,icn6211";
+		reg = <0x2c>;
+		clocks = <&osc26m>;
+		clock-names = "refclk";
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				bridge_in_dsi: endpoint {
+					remote-endpoint = <&dsi_out_bridge>;
+				};
+			};
+
+			bridge_out: port@1 {
+				reg = <1>;
+
+				bridge_out_panel: endpoint {
+					remote-endpoint = <&panel_out_bridge>;
+				};
+			};
+		};
+	};
+
+
+/*
+	icn6211@2c {
+		compatible = "chipone,icn6211";
+		reg = <0x2c>;
+		clocks = <&osc26m>;
+		clock-names = "refclk";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				icn6211_in_dsi: endpoint {
+					remote-endpoint = <&dsi_out_icn6211>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				icn6211_out_vopl: endpoint {
+					remote-endpoint = <&vopl_in_icn6211>;
+				};
+			};
+		};
+	};
+*/
 };
 
 &i2c4 {
@@ -722,19 +974,22 @@
 				port@0 {
 					reg = <0>;
 					typec_hs: endpoint {
-						remote-endpoint = <&u2phy0_typec_hs>;
+						remote-endpoint = <
+							&u2phy0_typec_hs>;
 					};
 				};
 				port@1 {
 					reg = <1>;
 					typec_ss: endpoint {
-						remote-endpoint = <&tcphy0_typec_ss>;
+						remote-endpoint = <
+							&tcphy0_typec_ss>;
 					};
 				};
 				port@2 {
 					reg = <2>;
 					typec_dp: endpoint {
-						remote-endpoint = <&tcphy0_typec_dp>;
+						remote-endpoint = <
+							&tcphy0_typec_dp>;
 					};
 				};
 			};
@@ -970,30 +1225,24 @@
 	status = "okay";
 };
 
-&dsi {
-	status = "okay";
-};
-
 &vopb_out_dsi {
-    status = "disabled";
+	status = "disabled";
 };
 
 &vopl_out_dsi {
-    status = "disabled";
-};
-
-/*
-&dsi1 {
-	rockchip,dual-channel = <&dsi>;
 	status = "okay";
-
-	panel: panel@0 {
-		compatible ="rockpi,tc358762";
-		reg = <0>;
-		status = "okay";
-	};
 };
-*/
+
+//&dsi1 {
+//	rockchip,dual-channel = <&dsi>;
+//	status = "okay";
+//
+//	panel: panel@0 {
+//		compatible ="rockpi,tc358762";
+//		reg = <0>;
+//		status = "okay";
+//	};
+//};
 
 &saradc {
 	status = "okay";
@@ -1021,6 +1270,20 @@
 };
 
 &pinctrl {
+
+lcd {
+		lcd_rst_gpio: lcd-rst-gpio {
+			rockchip,pins = <1 RK_PC2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+tp {
+		tp_gpio: tp-gpio {
+			rockchip,pins = <1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>,
+					<1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	headphone {
 		hp_det: hp-det {
 			rockchip,pins =
@@ -1140,7 +1403,8 @@
 			rockchip,pins =
 				<1 12 RK_FUNC_1 &pcfg_pull_up>,
 				<1 11 RK_FUNC_1 &pcfg_pull_up>,
-				<1 13 RK_FUNC_GPIO &pcfg_pull_up>;	//camera module enable pin
+				// camera module enable pin
+				<1 13 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 	i2s0 {
@@ -1212,10 +1476,6 @@
 };
 
 &vopb_mmu {
-	status = "okay";
-};
-
-&vopl {
 	status = "okay";
 };
 
@@ -1294,32 +1554,91 @@
 	status = "okay";
 };
 
-&dsi1_in_vopl {
+&hdmi_in_vopl {
+	status = "disabled";
+};
+
+&hdmi_in_vopb {
+	status = "disabled";
+};
+
+&route_hdmi {
+	status = "disabled";
+};
+
+&route_dsi {
+	connect = <&vopl_out_dsi>;
 	status = "okay";
+};
+
+&dp_in_vopb {
+	status = "disabled";
+};
+
+&dp_in_vopl {
+	status = "disabled";
+};
+
+&edp_in_vopl {
+	status = "disabled";
+};
+
+&edp_in_vopb {
+	status = "disabled";
+};
+
+&edp_in_vopl {
+	status = "disabled";
+};
+
+&dsi_in_vopl {
+	status = "okay";
+	remote-endpoint = <&vopl_out_dsi>;
+};
+
+&dsi_in_vopb {
+	status = "disabled";
+};
+
+&dsi1_in_vopl {
+	status = "disabled";
 };
 
 &dsi1_in_vopb {
 	status = "disabled";
 };
 
-&route_dsi {
-	status = "disabled";
- };
 
-&route_dsi1{
-	status = "okay";
-	connect = <&vopl_out_dsi1>;
+&vopb {
+	assigned-clocks = <&cru DCLK_VOP0_DIV>;
+	assigned-clock-parents = <&cru PLL_VPLL>;
 };
 
-&hdmi_in_vopl {
-	status = "disabled";
-};
-
-&hdmi_in_vopb {
+&dmc {
 	status = "okay";
-};
+	center-supply = <&vdd_center>;
+	upthreshold = <40>;
+	downdifferential = <20>;
+	system-status-freq = <
+		/*system status         freq(KHz)*/
+		SYS_STATUS_NORMAL       800000
+		SYS_STATUS_REBOOT       528000
+		SYS_STATUS_SUSPEND      200000
+		SYS_STATUS_VIDEO_1080P  200000
+		SYS_STATUS_VIDEO_4K     600000
+		SYS_STATUS_VIDEO_4K_10B 800000
+		SYS_STATUS_PERFORMANCE  800000
+		SYS_STATUS_BOOST        400000
+		SYS_STATUS_DUALVIEW     600000
+		SYS_STATUS_ISP          600000
+	>;
+	vop-bw-dmc-freq = <
+	/* min_bw(MB/s) max_bw(MB/s) freq(KHz) */
+		0       762      200000
+		763     1893     400000
+		1894    3012     528000
+		3013    99999    800000
+	>;
 
-&route_hdmi {
-	status = "okay";
-	connect = <&vopb_out_hdmi>;
+	auto-min-freq = <200000>;
 };

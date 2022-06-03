@@ -702,6 +702,7 @@ struct device_node *of_graph_get_endpoint_by_regs(
 			return node;
 	}
 
+	pr_err("[vaaman]: No endpoint found sadly!!");
 	return NULL;
 }
 EXPORT_SYMBOL(of_graph_get_endpoint_by_regs);
@@ -765,25 +766,31 @@ struct device_node *of_graph_get_remote_node(const struct device_node *node,
 {
 	struct device_node *endpoint_node, *remote;
 
+	pr_err("%s: 1\n", __func__);
 	endpoint_node = of_graph_get_endpoint_by_regs(node, port, endpoint);
 	if (!endpoint_node) {
-		pr_debug("no valid endpoint (%d, %d) for node %s\n",
+		pr_err("[vaaman]: no valid endpoint (%d, %d) for node %s\n",
 			 port, endpoint, node->full_name);
 		return NULL;
 	}
 
+	pr_err("%s: remote endpoint %p\n", __func__, of_parse_phandle(endpoint_node, "remote-endpoint", 0));
+	pr_err("%s: 2 (endpoint_node = %p)\n", __func__, endpoint_node);
 	remote = of_graph_get_remote_port_parent(endpoint_node);
 	of_node_put(endpoint_node);
 	if (!remote) {
-		pr_debug("no valid remote node\n");
+		pr_err("[vaaman]: no valid remote node\n");
 		return NULL;
 	}
 
+	pr_err("%s: 3 (remote = %p)\n", __func__, remote);
 	if (!of_device_is_available(remote)) {
-		pr_debug("not available for remote node\n");
+		pr_err("[vaaman]: not available for remote node\n");
+		of_node_put(remote);
 		return NULL;
 	}
 
+	pr_err("%s: 4 (remote %p)\n", __func__, remote);
 	return remote;
 }
 EXPORT_SYMBOL(of_graph_get_remote_node);

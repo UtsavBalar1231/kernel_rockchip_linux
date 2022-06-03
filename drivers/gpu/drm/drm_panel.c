@@ -97,13 +97,21 @@ EXPORT_SYMBOL(drm_find_panel_by_connector);
 struct drm_panel *of_drm_find_panel(struct device_node *np)
 {
 	struct drm_panel *panel;
+	printk("%s: np name: %s\n",
+		__func__,
+		np->full_name);
 
 	mutex_lock(&panel_lock);
 
 	list_for_each_entry(panel, &panel_list, list) {
 		if (panel->dev->of_node == np) {
+			printk("panel node name: %s == np name: %s\n",
+				panel->dev->of_node->full_name, np->full_name);
 			mutex_unlock(&panel_lock);
 			return panel;
+		} else {
+			printk("panel node name: %s != np name: %s\n",
+				panel->dev->of_node->full_name, np->full_name);
 		}
 	}
 

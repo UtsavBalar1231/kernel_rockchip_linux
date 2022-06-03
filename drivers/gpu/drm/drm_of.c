@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/component.h>
 #include <linux/export.h>
 #include <linux/list.h>
@@ -112,12 +114,12 @@ int drm_of_component_probe(struct device *dev,
 	}
 
 	if (i == 0) {
-		dev_err(dev, "missing 'ports' property\n");
+		pr_err( "missing 'ports' property\n");
 		return -ENODEV;
 	}
 
 	if (!match) {
-		dev_err(dev, "no available port\n");
+		pr_err( "no available port\n");
 		return -ENODEV;
 	}
 
@@ -140,7 +142,7 @@ int drm_of_component_probe(struct device *dev,
 				of_node_put(remote);
 				continue;
 			} else if (!of_device_is_available(remote->parent)) {
-				dev_warn(dev, "parent device of %s is not available\n",
+				pr_err( "parent device of %s is not available\n",
 					 remote->full_name);
 				of_node_put(remote);
 				continue;
@@ -210,32 +212,105 @@ int drm_of_find_panel_or_bridge(const struct device_node *np,
 	int ret = -EPROBE_DEFER;
 	struct device_node *remote;
 
-	if (!panel && !bridge)
+	if (np != NULL)
+		pr_err("%s: for node: %s\n", __func__, np->full_name);
+	else
+		pr_err("np is NULL\n");
+
+	if (!panel && !bridge) {
+		pr_err("%s: no panel or bridge found\n", __func__);
 		return -EINVAL;
+	}
+
+	if (panel)
+		*panel = NULL;
+
+	pr_err("%s: %pOF\n", __func__, np);
+	pr_err("%s: [PORTS = %p]\n", __func__, of_get_child_by_name(np, "ports"));
+	pr_err("%s: [PORT = %p]\n", __func__, of_get_child_by_name(np, "port"));
+
+	/**
+	 * Some OF graphs don't require 'ports' to represent the downstream
+	 * panel or bridge; instead it simply adds a child node on a given
+	 * parent node.
+	 *
+	 * Lookup that child node for a given parent however that child
+	 * cannot be a 'port' alone or it cannot be a 'port' node too.
+	 */
+	if (!of_get_child_by_name(np, "ports")) {
+		pr_err("1: [np %s] [port count %d]\n", np->name, of_get_child_count(np));
+		if (of_get_child_by_name(np, "port") && (of_get_child_count(np) == 1))
+			goto of_graph_get_remote;
+
+		for_each_available_child_of_node(np, remote) {
+			pr_err("2: [np -> %s] [remote -> %s]\n",
+				np->name, remote->name);
+			if (of_node_name_eq(remote, "port"))
+				continue;
+
+			pr_err("3: [np -> %s] [remote -> %s]\n",
+				np->name, remote->name);
+			goto of_find_panel_or_bridge;
+		}
+	}
+
+of_graph_get_remote:
+	/*
+	 * of_graph_get_remote_node() produces a noisy error message if port
+	 * node isn't found and the absence of the port is a legit case here,
+	 * so at first we silently check whether graph presents in the
+	 * device-tree node.
+	 */
+	if (!of_graph_is_present(np)) {
+		pr_err("%s: no graph found in %s\n", __func__, np->full_name);
+		return -ENODEV;
+	}
 
 	remote = of_graph_get_remote_node(np, port, endpoint);
-	if (!remote)
+
+of_find_panel_or_bridge:
+	if (!remote) {
+		pr_err("%s: no remote node found\n", __func__);
 		return -ENODEV;
+	}
 
 	if (panel) {
+		pr_err("%s: panel found: ret -> %d\n",
+			__func__, ret);
 		*panel = of_drm_find_panel(remote);
-		if (*panel)
+		if (*panel) {
 			ret = 0;
+			pr_err("panel found now setting ret = 0\n");
+		} else {
+			*panel = NULL;
+			pr_err("panel not found now setting panel = NULL\n");
+		}
+	} else {
+		pr_err("%s: no panel found :(", __func__);
 	}
 
 	/* No panel found yet, check for a bridge next. */
 	if (bridge) {
+		pr_err("%s: bridge found: ret -> %d\n",
+			__func__, ret);
 		if (ret) {
 			*bridge = of_drm_find_bridge(remote);
-			if (*bridge)
+			if (*bridge) {
+				pr_err("bridge found now setting ret = 0\n");
 				ret = 0;
+			}
 		} else {
-			*bridge = NULL;
+			pr_err("bridge not found now setting bridge = NULL\n");
+				*bridge = NULL;
 		}
-
+	} else {
+		pr_err("%s: No bridge found\n", __func__);
 	}
 
+	pr_err("%s: putting remote name: %s\n", __func__, remote->name);
 	of_node_put(remote);
+
+	pr_err("%s returned: %d\n", __func__, ret);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(drm_of_find_panel_or_bridge);

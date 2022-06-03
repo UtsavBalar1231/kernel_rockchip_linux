@@ -6,6 +6,8 @@
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  */
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/clk.h>
 #include <linux/component.h>
 #include <linux/iopoll.h>
@@ -346,7 +348,7 @@ static int genif_wait_w_pld_fifo_not_full(struct dw_mipi_dsi *dsi)
 				       sts, !(sts & GEN_PLD_W_FULL),
 				       10, CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
-		dev_err(dsi->dev, "generic write payload fifo is full\n");
+		pr_err("generic write payload fifo is full\n");
 		return ret;
 	}
 
@@ -362,7 +364,7 @@ static int genif_wait_cmd_fifo_not_full(struct dw_mipi_dsi *dsi)
 				       sts, !(sts & GEN_CMD_FULL),
 				       10, CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
-		dev_err(dsi->dev, "generic write cmd fifo is full\n");
+		pr_err("generic write cmd fifo is full\n");
 		return ret;
 	}
 
@@ -380,7 +382,7 @@ static int genif_wait_write_fifo_empty(struct dw_mipi_dsi *dsi)
 				       sts, (sts & mask) == mask,
 				       10, CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
-		dev_err(dsi->dev, "generic write fifo is full\n");
+		pr_err("generic write fifo is full\n");
 		return ret;
 	}
 
@@ -513,7 +515,7 @@ static int testif_write(void *context, unsigned int reg, unsigned int value)
 	testif_test_code_write(dsi, reg);
 	testif_test_data_write(dsi, value);
 
-	dev_dbg(dsi->dev,
+	pr_err(
 		"test_code=0x%02x, test_data=0x%02x, monitor_data=0x%02x\n",
 		reg, value, testif_get_data(dsi));
 
@@ -543,7 +545,7 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	if (dsi->dphy.phy) {
 		ret = phy_set_mode(dsi->dphy.phy, PHY_MODE_VIDEO_MIPI);
 		if (ret) {
-			dev_err(dsi->dev, "failed to set phy mode: %d\n", ret);
+			pr_err("failed to set phy mode: %d\n", ret);
 			return ret;
 		}
 
@@ -554,7 +556,7 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 				       val, val & PHY_LOCK,
 				       1000, PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
-		dev_err(dsi->dev, "PHY is not locked\n");
+		pr_err("PHY is not locked\n");
 		return ret;
 	}
 
@@ -565,12 +567,13 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 				       val, (val & mask) == mask,
 				       1000, PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
-		dev_err(dsi->dev, "lane module is not in stop state\n");
+		pr_err("lane module is not in stop state\n");
 		return ret;
 	}
 
 	udelay(10);
 
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
@@ -580,6 +583,7 @@ static void mipi_dphy_power_off(struct dw_mipi_dsi *dsi)
 
 	if (dsi->dphy.phy)
 		phy_power_off(dsi->dphy.phy);
+	pr_err("%s\n", __func__);
 }
 
 static int dw_mipi_dsi_turn_on_peripheral(struct dw_mipi_dsi *dsi)
@@ -588,6 +592,7 @@ static int dw_mipi_dsi_turn_on_peripheral(struct dw_mipi_dsi *dsi)
 	udelay(20);
 	dpishutdn_deassert(dsi);
 
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
@@ -597,6 +602,7 @@ static int dw_mipi_dsi_shutdown_peripheral(struct dw_mipi_dsi *dsi)
 	udelay(20);
 	dpishutdn_assert(dsi);
 
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
@@ -619,7 +625,7 @@ static int dw_mipi_dsi_turn_around_request(struct dw_mipi_dsi *dsi)
 	ret = regmap_read_poll_timeout(dsi->regmap, DSI_PHY_STATUS,
 				       val, val & PHY_DIRECTION, 0, 5000);
 	if (ret) {
-		dev_err(dsi->dev, "wait direction asserted timeout\n");
+		pr_err("wait direction asserted timeout\n");
 		return ret;
 	}
 
@@ -633,7 +639,7 @@ static int dw_mipi_dsi_turn_around_request(struct dw_mipi_dsi *dsi)
 	ret = regmap_read_poll_timeout(dsi->regmap, DSI_PHY_STATUS,
 				       val, val & PHY_STOPSTATE0LANE, 0, 5000);
 	if (ret) {
-		dev_err(dsi->dev, "wait stopstatedata0 asserted timeout\n");
+		pr_err("wait stopstatedata0 asserted timeout\n");
 		return ret;
 	}
 
@@ -642,11 +648,13 @@ static int dw_mipi_dsi_turn_around_request(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_host_power_on(struct dw_mipi_dsi *dsi)
 {
+	pr_err("%s\n", __func__);
 	regmap_write(dsi->regmap, DSI_PWR_UP, POWERUP);
 }
 
 static void dw_mipi_dsi_host_power_off(struct dw_mipi_dsi *dsi)
 {
+	pr_err("%s\n", __func__);
 	regmap_write(dsi->regmap, DSI_PWR_UP, RESET);
 }
 
@@ -658,6 +666,7 @@ static void dw_mipi_dsi_phy_pll_init(struct dw_mipi_dsi *dsi)
 	n = dphy->input_div - 1;
 	m = dphy->feedback_div - 1;
 
+	pr_err("%s\n", __func__);
 	regmap_write(dphy->regmap, 0x19,
 		     FEEDBACK_DIV_DEF_VAL_BYPASS | INPUT_DIV_DEF_VAL_BYPASS);
 	regmap_write(dphy->regmap, 0x17, INPUT_DIV(n));
@@ -687,6 +696,7 @@ static void dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 	u8 hsfreqrange, counter;
 	unsigned int index, txbyteclkhs;
 
+	pr_err("%s\n", __func__);
 	for (index = 0; index < ARRAY_SIZE(hsfreqrange_table); index++)
 		if (dsi->lane_mbps <= hsfreqrange_table[index].max_lane_mbps)
 			break;
@@ -839,6 +849,7 @@ static int dw_mipi_dsi_host_attach(struct mipi_dsi_host *host,
 	dsi->format = device->format;
 	dsi->mode_flags = device->mode_flags;
 
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
@@ -851,6 +862,7 @@ static int dw_mipi_dsi_host_detach(struct mipi_dsi_host *host,
 		drm_panel_detach(dsi->panel);
 
 	dsi->panel = NULL;
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
@@ -867,7 +879,7 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 				       val, !(val & GEN_RD_CMD_BUSY),
 				       0, DIV_ROUND_UP(1000000, vrefresh));
 	if (ret) {
-		dev_err(dsi->dev, "entire response isn't stored in the FIFO\n");
+		pr_err("entire response isn't stored in the FIFO\n");
 		return ret;
 	}
 
@@ -877,7 +889,7 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 					       val, !(val & GEN_PLD_R_EMPTY),
 					       50, 5000);
 		if (ret) {
-			dev_err(dsi->dev, "Read payload FIFO is empty\n");
+			pr_err("Read payload FIFO is empty\n");
 			return ret;
 		}
 
@@ -964,12 +976,14 @@ static void mipi_dphy_init(struct dw_mipi_dsi *dsi)
 	grf_field_write(dsi, ENABLECLK, 1);
 
 	mipi_dphy_enableclk_assert(dsi);
+	pr_err("%s\n", __func__);
 }
 
 static void dw_mipi_dsi_init(struct dw_mipi_dsi *dsi)
 {
 	u32 esc_clk_div;
 
+	pr_err("%s\n", __func__);
 	regmap_write(dsi->regmap, DSI_PWR_UP, RESET);
 
 	/* The maximum value of the escape clock frequency is 20MHz */
@@ -1135,6 +1149,7 @@ static void dw_mipi_dsi_disable(struct dw_mipi_dsi *dsi)
 
 	if (dsi->slave)
 		dw_mipi_dsi_disable(dsi->slave);
+	pr_err("%s\n", __func__);
 }
 
 static void dw_mipi_dsi_post_disable(struct dw_mipi_dsi *dsi)
@@ -1161,6 +1176,7 @@ static void dw_mipi_dsi_post_disable(struct dw_mipi_dsi *dsi)
 
 	if (dsi->master)
 		dw_mipi_dsi_post_disable(dsi->master);
+	pr_err("%s\n", __func__);
 }
 
 static void dw_mipi_dsi_encoder_disable(struct drm_encoder *encoder)
@@ -1170,16 +1186,24 @@ static void dw_mipi_dsi_encoder_disable(struct drm_encoder *encoder)
 	if (dsi->panel)
 		drm_panel_disable(dsi->panel);
 
+	if (dsi->bridge)
+		drm_bridge_disable(dsi->bridge);
+
 	dw_mipi_dsi_disable(dsi);
 
 	if (dsi->panel)
 		drm_panel_unprepare(dsi->panel);
 
+	if (dsi->bridge)
+		drm_bridge_post_disable(dsi->bridge);
+
 	dw_mipi_dsi_post_disable(dsi);
+	pr_err("%s\n", __func__);
 }
 
 static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi)
 {
+	pr_err("%s\n", __func__);
 	dw_mipi_dsi_init(dsi);
 	dw_mipi_dsi_dpi_config(dsi, &dsi->mode);
 	dw_mipi_dsi_packet_handler_config(dsi);
@@ -1197,6 +1221,7 @@ static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
 {
+	pr_err("%s\n", __func__);
 	if (dsi->master)
 		dw_mipi_dsi_pre_enable(dsi->master);
 
@@ -1233,6 +1258,7 @@ static void dw_mipi_dsi_enable(struct dw_mipi_dsi *dsi)
 	const struct drm_display_mode *mode = &dsi->mode;
 	u32 int_st1;
 
+	pr_err("%s\n", __func__);
 	/*
 	 * The high-speed clock is started before that the high-speed data is
 	 * sent via the data lanes.
@@ -1286,7 +1312,7 @@ static void dw_mipi_dsi_encoder_enable(struct drm_encoder *encoder)
 	else
 		dw_mipi_dsi_set_pll(dsi, lane_rate);
 
-	dev_info(dsi->dev, "final DSI-Link bandwidth: %u x %d Mbps\n",
+	pr_err("final DSI-Link bandwidth: %u x %d Mbps\n",
 		 dsi->lane_mbps, dsi->slave ? dsi->lanes * 2 : dsi->lanes);
 
 	dw_mipi_dsi_vop_routing(dsi);
@@ -1295,10 +1321,17 @@ static void dw_mipi_dsi_encoder_enable(struct drm_encoder *encoder)
 	if (dsi->panel)
 		drm_panel_prepare(dsi->panel);
 
+	if (dsi->bridge)
+		drm_bridge_pre_enable(dsi->bridge);
+
 	dw_mipi_dsi_enable(dsi);
 
 	if (dsi->panel)
 		drm_panel_enable(dsi->panel);
+
+	if (dsi->bridge)
+		drm_bridge_enable(dsi->bridge);
+
 }
 
 static int
@@ -1532,7 +1565,7 @@ static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 	/* create a packet to the DSI protocol */
 	ret = mipi_dsi_create_packet(&packet, msg);
 	if (ret) {
-		dev_err(dsi->dev, "failed to create packet: %d\n", ret);
+		pr_err("failed to create packet: %d\n", ret);
 		return ret;
 	}
 
@@ -1580,7 +1613,7 @@ static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 	if (msg->rx_len) {
 		ret = dw_mipi_dsi_turn_around_request(dsi);
 		if (ret) {
-			dev_err(dsi->dev,
+			pr_err(
 				"failed to send turn around request\n");
 			return ret;
 		}
@@ -1635,48 +1668,54 @@ static int dw_mipi_dsi_register(struct drm_device *drm,
 	ret = drm_encoder_init(drm, &dsi->encoder, &dw_mipi_dsi_encoder_funcs,
 			 DRM_MODE_ENCODER_DSI, NULL);
 	if (ret) {
-		dev_err(dev, "Failed to initialize encoder with drm\n");
+		pr_err("Failed to initialize encoder with drm\n");
 		return ret;
 	}
 
 	/* If there's a bridge, attach to it and let it create the connector. */
 	if (dsi->bridge) {
+		pr_err("Found a dsi bridge: %s\n", dsi->bridge->of_node->name);
 		dsi->bridge->driver_private = &dsi->dsi_host;
 		dsi->bridge->encoder = encoder;
 
 		ret = drm_bridge_attach(drm, dsi->bridge);
 		if (ret) {
-			dev_err(dev, "Failed to attach bridge: %d\n", ret);
+			pr_err("Failed to attach bridge: %d\n", ret);
 			goto encoder_cleanup;
 		}
 
 		encoder->bridge = dsi->bridge;
 	/* Otherwise create our own connector and attach to a panel */
 	} else {
+		pr_err("Found a dsi panel\n");
 		dsi->connector.port = dev->of_node;
 		ret = drm_connector_init(drm, &dsi->connector,
 					 &dw_mipi_dsi_atomic_connector_funcs,
 					 DRM_MODE_CONNECTOR_DSI);
 		if (ret) {
-			dev_err(dev, "Failed to initialize connector\n");
+			pr_err("Failed to initialize connector\n");
 			goto encoder_cleanup;
 		}
+
 		drm_connector_helper_add(connector,
 					 &dw_mipi_dsi_connector_helper_funcs);
 		drm_mode_connector_attach_encoder(connector, encoder);
 
 		ret = drm_panel_attach(dsi->panel, &dsi->connector);
 		if (ret) {
-			dev_err(dev, "Failed to attach panel: %d\n", ret);
+			pr_err("Failed to attach panel: %d\n", ret);
 			goto connector_cleanup;
 		}
 	}
 
+	pr_err("%s success\n", __func__);
 	return 0;
 
 connector_cleanup:
+	pr_err("failed %s\n", __func__);
 	drm_connector_cleanup(connector);
 encoder_cleanup:
+	pr_err("failed %s\n", __func__);
 	drm_encoder_cleanup(encoder);
 	return ret;
 }
@@ -1734,21 +1773,33 @@ static int dw_mipi_dsi_bind(struct device *dev, struct device *master,
 
 	dsi->panel = of_drm_find_panel(dsi->client);
 	if (!dsi->panel) {
+		pr_err("%s: dsi panel not found\n", __func__);
 		dsi->bridge = of_drm_find_bridge(dsi->client);
-		if (!dsi->bridge)
+		if (!dsi->bridge) {
+			pr_err("dsi bridge not found\n");
 			return -EPROBE_DEFER;
+		}
+	} else {
+		pr_err("%s: dsi panel found\n", __func__);
 	}
 
 	if (dsi->id) {
+		pr_err("%s: dsi id not found\n", __func__);
 		dsi->master = dw_mipi_dsi_find_by_id(dev->driver, 0);
-		if (!dsi->master)
+		if (!dsi->master) {
+			pr_err("dsi master not found\n");
 			return -EPROBE_DEFER;
+		}
+	} else {
+		pr_err("%s: dsi id found\n", __func__);
 	}
 
 	if (dsi->lanes > 4) {
 		dsi->slave = dw_mipi_dsi_find_by_id(dev->driver, 1);
-		if (!dsi->slave)
+		if (!dsi->slave) {
+			pr_err("dsi slave not found\n");
 			return -EPROBE_DEFER;
+		}
 
 		//dsi->lanes /= 2;
 		dsi->slave->lanes = dsi->lanes;
@@ -1757,15 +1808,19 @@ static int dw_mipi_dsi_bind(struct device *dev, struct device *master,
 		dsi->slave->mode_flags = dsi->mode_flags;
 	}
 
+	pr_err("Attached %s\n",
+		 dsi->bridge ? "bridge" : "panel");
+
 	ret = dw_mipi_dsi_register(drm, dsi);
 	if (ret) {
-		dev_err(dev, "Failed to register mipi_dsi: %d\n", ret);
+		pr_err("Failed to register mipi_dsi: %d\n", ret);
 		return ret;
 	}
 
 	dev_set_drvdata(dev, dsi);
 
 	dw_mipi_dsi_rpm_enable(dsi);
+	pr_err("%s\n", __func__);
 
 	return ret;
 }
@@ -1779,6 +1834,9 @@ static void dw_mipi_dsi_unbind(struct device *dev, struct device *master,
 
 	if (dsi->panel)
 		drm_panel_detach(dsi->panel);
+
+	if (dsi->bridge)
+		drm_bridge_detach(dsi->bridge);
 }
 
 static const struct component_ops dw_mipi_dsi_ops = {
@@ -1840,15 +1898,15 @@ static irqreturn_t dw_mipi_dsi_irq_handler(int irq, void *dev_id)
 
 	for (i = 0; i < ARRAY_SIZE(ack_with_err); i++)
 		if (int_st0 & BIT(i))
-			dev_err(dsi->dev, "%s\n", ack_with_err[i]);
+			pr_err("%s\n", ack_with_err[i]);
 
 	for (i = 0; i < ARRAY_SIZE(dphy_error); i++)
 		if (int_st0 & BIT(16 + i))
-			dev_err(dsi->dev, "%s\n", dphy_error[i]);
+			pr_err("%s\n", dphy_error[i]);
 
 	for (i = 0; i < ARRAY_SIZE(error_report); i++)
 		if (int_st1 & BIT(i))
-			dev_err(dsi->dev, "%s\n", error_report[i]);
+			pr_err("%s\n", error_report[i]);
 
 	if (int_st1 & DPI_PLD_WR_ERR) {
 		regmap_write(dsi->regmap, DSI_PWR_UP, RESET);
@@ -1877,31 +1935,31 @@ static int mipi_dphy_attach(struct dw_mipi_dsi *dsi)
 	dphy->phy = devm_phy_optional_get(dev, "mipi_dphy");
 	if (IS_ERR(dphy->phy)) {
 		ret = PTR_ERR(dphy->phy);
-		dev_err(dev, "failed to get mipi dphy: %d\n", ret);
+		pr_err("failed to get mipi dphy: %d\n", ret);
 		return ret;
 	}
 
 	if (dphy->phy) {
-		dev_dbg(dev, "Use Non-SNPS PHY\n");
+		pr_err("Use Non-SNPS PHY\n");
 
 		dphy->hs_clk = devm_clk_get(dev, "hs_clk");
 		if (IS_ERR(dphy->hs_clk)) {
-			dev_err(dev, "failed to get PHY high-speed clock\n");
+			pr_err("failed to get PHY high-speed clock\n");
 			return PTR_ERR(dphy->hs_clk);
 		}
 	} else {
-		dev_dbg(dev, "Use SNPS PHY\n");
+		pr_err("Use SNPS PHY\n");
 
 		dphy->ref_clk = devm_clk_get(dev, "ref");
 		if (IS_ERR(dphy->ref_clk)) {
-			dev_err(dev, "failed to get PHY reference clock\n");
+			pr_err("failed to get PHY reference clock\n");
 			return PTR_ERR(dphy->ref_clk);
 		}
 
 		if (dsi->pdata->soc_type != RK3288) {
 			dphy->cfg_clk = devm_clk_get(dev, "phy_cfg");
 			if (IS_ERR(dphy->cfg_clk)) {
-				dev_err(dev, "failed to get PHY config clk\n");
+				pr_err("failed to get PHY config clk\n");
 				return PTR_ERR(dphy->cfg_clk);
 			}
 		}
@@ -1909,10 +1967,11 @@ static int mipi_dphy_attach(struct dw_mipi_dsi *dsi)
 		dphy->regmap = devm_regmap_init(dev, NULL, dsi,
 						&testif_regmap_config);
 		if (IS_ERR(dphy->regmap)) {
-			dev_err(dev, "failed to create mipi dphy regmap\n");
+			pr_err("failed to create mipi dphy regmap\n");
 			return PTR_ERR(dphy->regmap);
 		}
 	}
+	pr_err("%s\n", __func__);
 
 	return 0;
 }
@@ -1925,16 +1984,20 @@ static int dw_mipi_dsi_parse_dt(struct dw_mipi_dsi *dsi)
 
 	endpoint = of_graph_get_endpoint_by_regs(np, 1, -1);
 	if (endpoint) {
+		pr_err("found endpoint: %s", endpoint->name);
 		remote = of_graph_get_remote_port_parent(endpoint);
 		of_node_put(endpoint);
 		if (!remote) {
-			dev_err(dev, "no panel/bridge connected\n");
+			pr_err("no panel/bridge connected\n");
 			return -ENODEV;
 		}
 		of_node_put(remote);
+	} else {
+		pr_err("No endpoints found");
 	}
 
 	dsi->client = remote;
+	pr_err("%s\n", __func__);
 
 	return 0;
 }
@@ -1956,6 +2019,7 @@ static int dw_mipi_dsi_probe(struct platform_device *pdev)
 	void __iomem *regs;
 	int ret;
 	int dsi_id;
+	pr_err("%s\n", __func__);
 
 	dsi = devm_kzalloc(dev, sizeof(*dsi), GFP_KERNEL);
 	if (!dsi)
@@ -1974,61 +2038,65 @@ static int dw_mipi_dsi_probe(struct platform_device *pdev)
 
 	ret = dw_mipi_dsi_parse_dt(dsi);
 	if (ret) {
-		dev_err(dev, "failed to parse DT\n");
+		pr_err("failed to parse DT\n");
 		return ret;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	regs = devm_ioremap_resource(dev, res);
-	if (IS_ERR(regs))
+	if (IS_ERR(regs)) {
+		pr_err("regs failed");
 		return PTR_ERR(regs);
+	}
 
 	dsi->irq = platform_get_irq(pdev, 0);
-	if (dsi->irq < 0)
+	if (dsi->irq < 0) {
+		pr_err("irq get failed");
 		return dsi->irq;
-
+	}
 	dsi->pclk = devm_clk_get(dev, "pclk");
 	if (IS_ERR(dsi->pclk)) {
 		ret = PTR_ERR(dsi->pclk);
-		dev_err(dev, "Unable to get pclk: %d\n", ret);
+		pr_err("Unable to get pclk: %d\n", ret);
 		return ret;
 	}
 
 	dsi->regmap = devm_regmap_init_mmio(dev, regs,
 					    &dw_mipi_dsi_regmap_config);
 	if (IS_ERR(dsi->regmap)) {
-		dev_err(dev, "failed to init register map\n");
+		pr_err("failed to init register map\n");
 		return PTR_ERR(dsi->regmap);
 	}
 
 	if (dsi->pdata->soc_type == RK3126) {
 		dsi->h2p_clk = devm_clk_get(dev, "h2p");
 		if (IS_ERR(dsi->h2p_clk)) {
-			dev_err(dev, "failed to get h2p bridge clock\n");
+			pr_err("failed to get h2p bridge clock\n");
 			return PTR_ERR(dsi->h2p_clk);
 		}
 	}
 
 	dsi->grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
 	if (IS_ERR(dsi->grf)) {
-		dev_err(dev, "Unable to get rockchip,grf\n");
+		pr_err("Unable to get rockchip,grf\n");
 		return PTR_ERR(dsi->grf);
 	}
 
 	dsi->rst = devm_reset_control_get(dev, "apb");
 	if (IS_ERR(dsi->rst)) {
-		dev_err(dev, "failed to get reset control\n");
+		pr_err("failed to get reset control\n");
 		return PTR_ERR(dsi->rst);
 	}
 
 	ret = mipi_dphy_attach(dsi);
-	if (ret)
+	if (ret) {
+		pr_err("mipi dphy attach failed");
 		return ret;
-
+	}
 	ret = devm_request_irq(dev, dsi->irq, dw_mipi_dsi_irq_handler,
 			       IRQF_SHARED, dev_name(dev), dsi);
 	if (ret) {
-		dev_err(dev, "failed to request irq: %d\n", ret);
+		pr_err("failed to request irq: %d\n", ret);
 		return ret;
 	}
 
@@ -2036,12 +2104,15 @@ static int dw_mipi_dsi_probe(struct platform_device *pdev)
 	dsi->dsi_host.dev = dev;
 
 	ret = mipi_dsi_host_register(&dsi->dsi_host);
-	if (ret)
+	if (ret) {
+		pr_err("mipi dsi host register failed");
 		return ret;
-
+	}
 	ret = component_add(dev, &dw_mipi_dsi_ops);
 	if (ret)
 		mipi_dsi_host_unregister(&dsi->dsi_host);
+
+	pr_err("%s sucess\n", __func__);
 
 	return ret;
 }

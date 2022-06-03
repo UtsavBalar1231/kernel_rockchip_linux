@@ -4154,6 +4154,7 @@ static int vop_create_crtc(struct vop *vop)
 	int ret;
 	int i;
 
+	DRM_ERROR("%s\n", __func__);
 	/*
 	 * Create drm_plane for primary and cursor planes first, since we need
 	 * to pass them to drm_crtc_init_with_planes, which sets the
@@ -4203,10 +4204,13 @@ static int vop_create_crtc(struct vop *vop)
 
 	port = of_get_child_by_name(dev->of_node, "port");
 	if (!port) {
-		DRM_ERROR("no port node found in %s\n",
+		DRM_ERROR("[vaaman]no port node found in %s\n",
 			  dev->of_node->full_name);
 		ret = -ENOENT;
 		goto err_cleanup_crtc;
+	} else {
+		DRM_ERROR("[vaaman]Port node found in %s\n",
+			  dev->of_node->full_name);
 	}
 
 	drm_flip_work_init(&vop->fb_unref_work, "fb_unref",

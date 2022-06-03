@@ -141,11 +141,12 @@
 
 &vopl {
 	status = "okay";
-
+/*
 	/* Don't use vopl for dp, save it for edp */
 	vopl_out: port {
 		/delete-node/ endpoint@3;
 	};
+*/
 };
 
 &vopl_mmu {

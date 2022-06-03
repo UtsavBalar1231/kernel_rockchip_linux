@@ -36,8 +36,12 @@ EXPORT_SYMBOL(of_node_get);
  */
 void of_node_put(struct device_node *node)
 {
-	if (node)
+	if (node) {
+		printk("%s: for node: %s", __func__, node->full_name);
 		kobject_put(&node->kobj);
+	} else {
+		printk("%s: node is NULL", __func__);
+	}
 }
 EXPORT_SYMBOL(of_node_put);
 

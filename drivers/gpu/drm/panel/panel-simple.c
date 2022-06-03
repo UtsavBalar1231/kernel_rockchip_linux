@@ -20,6 +20,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/backlight.h>
 #include <linux/gpio/consumer.h>
@@ -200,7 +201,7 @@ static int panel_simple_parse_cmds(struct device *dev,
 		dchdr = (struct cmd_ctrl_hdr *)bp;
 
 		if (dchdr->dlen > len) {
-			dev_err(dev, "%s: error, len=%d", __func__,
+			pr_err( "%s: error, len=%d", __func__,
 				dchdr->dlen);
 			return -EINVAL;
 		}
@@ -213,7 +214,7 @@ static int panel_simple_parse_cmds(struct device *dev,
 	}
 
 	if (len != 0) {
-		dev_err(dev, "%s: dcs_cmd=%x len=%d error!",
+		pr_err( "%s: dcs_cmd=%x len=%d error!",
 			__func__, buf[0], blen);
 		kfree(buf);
 		return -EINVAL;
@@ -355,7 +356,7 @@ static int panel_simple_dsi_send_cmds(struct panel_simple *panel,
 		}
 
 		if (err < 0)
-			dev_err(panel->dev, "failed to write dcs cmd: %d\n",
+			pr_err( "failed to write dcs cmd: %d\n",
 				err);
 
 		if (cmd->dchdr.wait)
@@ -390,7 +391,7 @@ static int panel_simple_get_cmds(struct panel_simple *panel)
 		err = panel_simple_parse_cmds(panel->dev, data, len,
 					      panel->on_cmds);
 		if (err) {
-			dev_err(panel->dev, "failed to parse panel init sequence\n");
+			pr_err( "failed to parse panel init sequence\n");
 			return err;
 		}
 	}
@@ -407,7 +408,7 @@ static int panel_simple_get_cmds(struct panel_simple *panel)
 		err = panel_simple_parse_cmds(panel->dev, data, len,
 					      panel->off_cmds);
 		if (err) {
-			dev_err(panel->dev, "failed to parse panel exit sequence\n");
+			pr_err( "failed to parse panel exit sequence\n");
 			return err;
 		}
 	}
@@ -431,7 +432,7 @@ static int panel_simple_get_fixed_modes(struct panel_simple *panel)
 		videomode_from_timing(dt, &vm);
 		mode = drm_mode_create(drm);
 		if (!mode) {
-			dev_err(drm->dev, "failed to add mode %ux%u\n",
+			pr_err( "failed to add mode %ux%u\n",
 				dt->hactive.typ, dt->vactive.typ);
 			continue;
 		}
@@ -448,7 +449,7 @@ static int panel_simple_get_fixed_modes(struct panel_simple *panel)
 
 		mode = drm_mode_duplicate(drm, m);
 		if (!mode) {
-			dev_err(drm->dev, "failed to add mode %ux%u@%u\n",
+			pr_err( "failed to add mode %ux%u@%u\n",
 				m->hdisplay, m->vdisplay, m->vrefresh);
 			continue;
 		}
@@ -480,7 +481,7 @@ static int panel_simple_of_get_native_mode(struct panel_simple *panel)
 	timings_np = of_get_child_by_name(panel->dev->of_node,
 					  "display-timings");
 	if (!timings_np) {
-		dev_dbg(panel->dev, "failed to find display-timings node\n");
+		pr_err( "failed to find display-timings node\n");
 		return 0;
 	}
 
@@ -492,7 +493,7 @@ static int panel_simple_of_get_native_mode(struct panel_simple *panel)
 	ret = of_get_drm_display_mode(panel->dev->of_node, mode,
 				      OF_USE_NATIVE_MODE);
 	if (ret) {
-		dev_dbg(panel->dev, "failed to find dts display timings\n");
+		pr_err( "failed to find dts display timings\n");
 		drm_mode_destroy(drm, mode);
 		return 0;
 	}
@@ -515,7 +516,7 @@ static int panel_simple_regulator_enable(struct drm_panel *panel)
 	} else {
 		err = regulator_enable(p->supply);
 		if (err < 0) {
-			dev_err(panel->dev, "failed to enable supply: %d\n",
+			pr_err( "failed to enable supply: %d\n",
 				err);
 			return err;
 		}
@@ -533,7 +534,7 @@ static int panel_simple_regulator_disable(struct drm_panel *panel)
 		if (!regulator_is_enabled(p->supply)) {
 			err = regulator_enable(p->supply);
 			if (err < 0) {
-				dev_err(panel->dev, "failed to enable supply: %d\n",
+				pr_err( "failed to enable supply: %d\n",
 					err);
 				return err;
 			}
@@ -553,7 +554,7 @@ static int panel_simple_loader_protect(struct drm_panel *panel, bool on)
 	if (on) {
 		err = panel_simple_regulator_enable(panel);
 		if (err < 0) {
-			dev_err(panel->dev, "failed to enable supply: %d\n",
+			pr_err( "failed to enable supply: %d\n",
 				err);
 			return err;
 		}
@@ -583,7 +584,7 @@ static int panel_simple_disable(struct drm_panel *panel)
 	if (p->cmd_type == CMD_TYPE_MCU) {
 		err = panel_simple_mcu_send_cmds(p, p->off_cmds);
 		if (err)
-			dev_err(p->dev, "failed to send mcu off cmds\n");
+			pr_err( "failed to send mcu off cmds\n");
 	}
 	p->enabled = false;
 
@@ -604,7 +605,7 @@ static int panel_simple_unprepare(struct drm_panel *panel)
 		else if (p->cmd_type == CMD_TYPE_SPI)
 			err = panel_simple_spi_send_cmds(p, p->off_cmds);
 		if (err)
-			dev_err(p->dev, "failed to send off cmds\n");
+			pr_err( "failed to send off cmds\n");
 	}
 
 	if (p->reset_gpio)
@@ -633,7 +634,7 @@ static int panel_simple_prepare(struct drm_panel *panel)
 
 	err = panel_simple_regulator_enable(panel);
 	if (err < 0) {
-		dev_err(panel->dev, "failed to enable supply: %d\n", err);
+		pr_err( "failed to enable supply: %d\n", err);
 		return err;
 	}
 
@@ -661,7 +662,7 @@ static int panel_simple_prepare(struct drm_panel *panel)
 		else if (p->cmd_type == CMD_TYPE_SPI)
 			err = panel_simple_spi_send_cmds(p, p->on_cmds);
 		if (err)
-			dev_err(p->dev, "failed to send on cmds\n");
+			pr_err( "failed to send on cmds\n");
 	}
 
 	p->prepared = true;
@@ -680,7 +681,7 @@ static int panel_simple_enable(struct drm_panel *panel)
 	if (p->cmd_type == CMD_TYPE_MCU) {
 		err = panel_simple_mcu_send_cmds(p, p->on_cmds);
 		if (err)
-			dev_err(p->dev, "failed to send mcu on cmds\n");
+			pr_err( "failed to send mcu on cmds\n");
 	}
 	if (p->desc && p->desc->delay.enable)
 		panel_simple_sleep(p->desc->delay.enable);
@@ -838,28 +839,28 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 
 	err = panel_simple_get_cmds(panel);
 	if (err) {
-		dev_err(dev, "failed to get init cmd: %d\n", err);
+		pr_err( "failed to get init cmd: %d\n", err);
 		return err;
 	}
 	panel->supply = devm_regulator_get(dev, "power");
 	if (IS_ERR(panel->supply)) {
 		err = PTR_ERR(panel->supply);
-		dev_err(dev, "failed to get power regulator: %d\n", err);
-		return err;
+		pr_err( "failed to get power regulator: %d\n", err);
+		//return err;
 	}
 
 	panel->enable_gpio = devm_gpiod_get_optional(dev, "enable", 0);
 	if (IS_ERR(panel->enable_gpio)) {
 		err = PTR_ERR(panel->enable_gpio);
-		dev_err(dev, "failed to request enable GPIO: %d\n", err);
-		return err;
+		pr_err( "failed to request enable GPIO: %d\n", err);
+		// return err;
 	}
 
 	panel->reset_gpio = devm_gpiod_get_optional(dev, "reset", 0);
 	if (IS_ERR(panel->reset_gpio)) {
 		err = PTR_ERR(panel->reset_gpio);
-		dev_err(dev, "failed to request reset GPIO: %d\n", err);
-		return err;
+		pr_err( "failed to request reset GPIO: %d\n", err);
+		//return err;
 	}
 
 	if (of_property_read_string(dev->of_node, "rockchip,cmd-type",
@@ -873,7 +874,7 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 				devm_gpiod_get_optional(dev, "spi-sdi", 0);
 		if (IS_ERR(panel->spi_sdi_gpio)) {
 			err = PTR_ERR(panel->spi_sdi_gpio);
-			dev_err(dev, "failed to request spi_sdi: %d\n", err);
+			pr_err( "failed to request spi_sdi: %d\n", err);
 			return err;
 		}
 
@@ -881,14 +882,14 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 				devm_gpiod_get_optional(dev, "spi-scl", 0);
 		if (IS_ERR(panel->spi_scl_gpio)) {
 			err = PTR_ERR(panel->spi_scl_gpio);
-			dev_err(dev, "failed to request spi_scl: %d\n", err);
+			pr_err( "failed to request spi_scl: %d\n", err);
 			return err;
 		}
 
 		panel->spi_cs_gpio = devm_gpiod_get_optional(dev, "spi-cs", 0);
 		if (IS_ERR(panel->spi_cs_gpio)) {
 			err = PTR_ERR(panel->spi_cs_gpio);
-			dev_err(dev, "failed to request spi_cs: %d\n", err);
+			pr_err( "failed to request spi_cs: %d\n", err);
 			return err;
 		}
 		gpiod_direction_output(panel->spi_cs_gpio, 1);
@@ -923,7 +924,7 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 
 		if (!panel->backlight) {
 			err = -EPROBE_DEFER;
-			dev_err(dev, "failed to find backlight: %d\n", err);
+			pr_err( "failed to find backlight: %d\n", err);
 			return err;
 		}
 	}
@@ -935,7 +936,7 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 
 		if (!panel->ddc) {
 			err = -EPROBE_DEFER;
-			dev_err(dev, "failed to find ddc-i2c-bus: %d\n", err);
+			pr_err( "failed to find ddc-i2c-bus: %d\n", err);
 			goto free_backlight;
 		}
 	}
@@ -949,6 +950,7 @@ static int panel_simple_probe(struct device *dev, const struct panel_desc *desc)
 		goto free_ddc;
 
 	dev_set_drvdata(dev, panel);
+	pr_err("simple panel probed successfully !!");
 
 	return 0;
 
@@ -958,6 +960,7 @@ free_ddc:
 free_backlight:
 	if (panel->backlight)
 		put_device(&panel->backlight->dev);
+	pr_err("simple panel probed failed !!");
 
 	return err;
 }
@@ -2458,7 +2461,7 @@ static int panel_simple_dsi_probe(struct mipi_dsi_device *dsi)
 						       &props);
 		if (IS_ERR(panel->backlight)) {
 			err = PTR_ERR(panel->backlight);
-			dev_err(dev, "failed to register dcs backlight: %d\n",
+			pr_err( "failed to register dcs backlight: %d\n",
 				err);
 			return err;
 		}
@@ -2489,7 +2492,7 @@ static int panel_simple_dsi_remove(struct mipi_dsi_device *dsi)
 
 	err = mipi_dsi_detach(dsi);
 	if (err < 0)
-		dev_err(&dsi->dev, "failed to detach from DSI host: %d\n", err);
+		pr_err( "failed to detach from DSI host: %d\n", err);
 
 	return panel_simple_remove(&dsi->dev);
 }

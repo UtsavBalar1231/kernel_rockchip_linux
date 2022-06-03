@@ -342,12 +342,22 @@ struct drm_bridge *of_drm_find_bridge(struct device_node *np)
 {
 	struct drm_bridge *bridge;
 
+        printk("%s: np name: %s\n",
+                __func__,
+                np->full_name);
+
+
 	mutex_lock(&bridge_lock);
 
 	list_for_each_entry(bridge, &bridge_list, list) {
 		if (bridge->of_node == np) {
+			printk("bridge node name: %s  == np name: %s\n",
+				bridge->of_node->full_name, np->full_name);
 			mutex_unlock(&bridge_lock);
 			return bridge;
+		} else {
+			printk("bridge node name: %s != np name: %s\n",
+				bridge->of_node->full_name, np->full_name);
 		}
 	}
 

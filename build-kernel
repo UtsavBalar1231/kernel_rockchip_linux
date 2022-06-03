@@ -59,7 +59,7 @@ rm -r ${OUT_DIR}/extlinux/
 make -j${KEBABS} ${ARGS} rockchip_linux_defconfig
 
 # Make kernel Image
-make -j${KEBABS} ${ARGS} CC="ccache ${CROSS_COMPILE}gcc" 2>&1 | tee build.log
+make -j${KEBABS} ${ARGS} 2>&1 | tee build.log
 
 # Pack Image into boot image
 mkfs.vfat -n "boot" -S 512 -C $FILENAME $((100 * 1024))

@@ -4,6 +4,7 @@
  *
  * Author: Wyon Bi <bivvy.bi@rock-chips.com>
  */
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/kernel.h>
 #include <linux/delay.h>
@@ -261,8 +262,11 @@ static void icn6211_bridge_enable(struct drm_bridge *bridge)
 {
 	struct icn6211 *icn6211 = bridge_to_icn6211(bridge);
 
-	if (icn6211->panel)
+	if (icn6211->panel) {
+		pr_err("%s: panel enable successfully!!\n", __func__);
 		drm_panel_enable(icn6211->panel);
+	} else
+		pr_err("%s: panel enable failed!!\n", __func__);
 }
 
 static void icn6211_bridge_post_disable(struct drm_bridge *bridge)
@@ -280,6 +284,7 @@ static void icn6211_bridge_post_disable(struct drm_bridge *bridge)
 	regulator_disable(icn6211->vdd1);
 
 	clk_disable_unprepare(icn6211->refclk);
+	pr_err("%s\n", __func__);
 }
 
 static void icn6211_bridge_pre_enable(struct drm_bridge *bridge)
@@ -298,18 +303,15 @@ static void icn6211_bridge_pre_enable(struct drm_bridge *bridge)
 
 	ret = regulator_enable(icn6211->vdd1);
 	if (ret)
-		dev_err(icn6211->dev,
-			"failed to enable vdd1 supply: %d\n", ret);
+		pr_err("failed to enable vdd1 supply: %d\n", ret);
 
 	ret = regulator_enable(icn6211->vdd2);
 	if (ret)
-		dev_err(icn6211->dev,
-			"failed to enable vdd2 supply: %d\n", ret);
+		pr_err("failed to enable vdd2 supply: %d\n", ret);
 
 	ret = regulator_enable(icn6211->vdd3);
 	if (ret)
-		dev_err(icn6211->dev,
-			"failed to enable vdd3 supply: %d\n", ret);
+		pr_err("failed to enable vdd3 supply: %d\n", ret);
 
 	if (icn6211->enable_gpio)
 		gpiod_direction_output(icn6211->enable_gpio, 1);
@@ -318,8 +320,8 @@ static void icn6211_bridge_pre_enable(struct drm_bridge *bridge)
 
 	regmap_read(icn6211->regmap, DEVICE_ID_H, &device_id_h);
 	regmap_read(icn6211->regmap, DEVICE_ID_L, &device_id_l);
-	dev_info(icn6211->dev, "The ID of device: 0x%04x\n",
-		 (device_id_h << 8) | device_id_l);
+	pr_err("[vaaman] %s: The ID of device: 0x%04x\n",
+		 __func__, (device_id_h << 8) | device_id_l);
 
 	hactive = mode->hdisplay;
 	hfp = mode->hsync_start - mode->hdisplay;
@@ -384,10 +386,9 @@ static void icn6211_bridge_pre_enable(struct drm_bridge *bridge)
 	regmap_write(icn6211->regmap, PLL_INT_0, pll_int & 0xff);
 	regmap_write(icn6211->regmap, PLL_INT_1, (pll_int >> 8) & 0x3);
 
-	dev_dbg(icn6211->dev,
-		"pll_refdiv=%d, pll_extra_div=%d, pll_int=%d, pll_dv=%d\n",
+	pr_err("pll_refdiv=%d, pll_extra_div=%d, pll_int=%d, pll_dv=%d\n",
 		pll_refdiv, pll_extra_div, pll_int, pll_dv);
-	dev_dbg(icn6211->dev, "fin=%ld, fout=%ld\n", refclk,
+	pr_err("fin=%ld, fout=%ld\n", refclk,
 		refclk / pll_refdiv / pll_extra_div * pll_int / pll_dv / 2);
 
 	/*
@@ -424,6 +425,7 @@ static void icn6211_bridge_pre_enable(struct drm_bridge *bridge)
 
 	if (icn6211->panel)
 		drm_panel_prepare(icn6211->panel);
+	pr_err("%s\n", __func__);
 }
 
 static void icn6211_bridge_mode_set(struct drm_bridge *bridge,
@@ -433,6 +435,7 @@ static void icn6211_bridge_mode_set(struct drm_bridge *bridge,
 	struct icn6211 *icn6211 = bridge_to_icn6211(bridge);
 
 	drm_mode_copy(&icn6211->mode, adj);
+	pr_err("%s\n", __func__);
 }
 
 static int icn6211_bridge_attach(struct drm_bridge *bridge)
@@ -453,28 +456,32 @@ static int icn6211_bridge_attach(struct drm_bridge *bridge)
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret) {
-		dev_err(icn6211->dev, "failed to attach dsi host: %d\n", ret);
+		pr_err("failed to attach dsi host: %d\n", ret);
 		return ret;
+	} else {
+		pr_err("%s: attach dsi host: %d\n", __func__, ret);
 	}
 
 	if (icn6211->bridge) {
+		pr_err("%s: found bridge: %s\n", __func__, icn6211->bridge->of_node->name);
 		icn6211->bridge->encoder = bridge->encoder;
 
 		ret = drm_bridge_attach(drm, icn6211->bridge);
 		if (ret) {
-			dev_err(icn6211->dev,
-				"failed to attach bridge: %d\n", ret);
+			pr_err("failed to attach bridge: %d\n", ret);
 			return ret;
+		} else {
+			pr_err("attach bridge success: %d\n", ret);
 		}
 
 		bridge->next = icn6211->bridge;
 	} else {
+		pr_err("%s: found panel: %s\n", __func__, icn6211->panel->dev->of_node->name);
 		ret = drm_connector_init(drm, connector,
 					 &icn6211_connector_funcs,
 					 DRM_MODE_CONNECTOR_DPI);
 		if (ret) {
-			dev_err(icn6211->dev,
-				"failed to initialize connector\n");
+			pr_err("failed to initialize connector\n");
 			return ret;
 		}
 
@@ -485,6 +492,7 @@ static int icn6211_bridge_attach(struct drm_bridge *bridge)
 		drm_panel_attach(icn6211->panel, connector);
 	}
 
+	pr_err("%s: success\n", __func__);
 	return 0;
 }
 
@@ -511,10 +519,13 @@ static int icn6211_i2c_probe(struct i2c_client *client,
 	struct icn6211 *icn6211;
 	u32 val;
 	int ret;
+	pr_err("probing icn6211!!\n");
 
 	icn6211 = devm_kzalloc(dev, sizeof(*icn6211), GFP_KERNEL);
-	if (!icn6211)
+	if (!icn6211) {
+		pr_err("%s: Cannot allocate mem\n", __func__);
 		return -ENOMEM;
+	}
 
 	icn6211->dev = dev;
 	icn6211->client = client;
@@ -522,33 +533,41 @@ static int icn6211_i2c_probe(struct i2c_client *client,
 
 	ret = drm_of_find_panel_or_bridge(dev->of_node, 1, -1,
 					  &icn6211->panel, &icn6211->bridge);
-	if (ret)
-		return ret;
+	if (ret) {
+		pr_err("find_panel_or_bridge not found ret: %d\n", ret);
+		// return ret;
+	}
 
 	icn6211->refclk = devm_clk_get(dev, "refclk");
 	if (IS_ERR(icn6211->refclk)) {
 		ret = PTR_ERR(icn6211->refclk);
-		dev_err(dev, "failed to get ref clk: %d\n", ret);
-		return ret;
+		pr_err( "failed to get ref clk: %d\n", ret);
+		//return ret;
 	}
 
 	icn6211->vdd1 = devm_regulator_get(dev, "vdd1");
-	if (IS_ERR(icn6211->vdd1))
-		return PTR_ERR(icn6211->vdd1);
+	if (IS_ERR(icn6211->vdd1)) {
+		pr_err("error in vdd1");
+		//return PTR_ERR(icn6211->vdd1);
+	}
 
 	icn6211->vdd2 = devm_regulator_get(dev, "vdd2");
-	if (IS_ERR(icn6211->vdd2))
-		return PTR_ERR(icn6211->vdd2);
+	if (IS_ERR(icn6211->vdd2)){
+		pr_err("error in vdd2");
+		//return PTR_ERR(icn6211->vdd2);
+	}
 
 	icn6211->vdd3 = devm_regulator_get(dev, "vdd3");
-	if (IS_ERR(icn6211->vdd3))
-		return PTR_ERR(icn6211->vdd3);
+	if (IS_ERR(icn6211->vdd3)){
+		pr_err("error in vdd3");
+		//return PTR_ERR(icn6211->vdd3);
+	}
 
 	icn6211->enable_gpio = devm_gpiod_get_optional(dev, "enable", 0);
 	if (IS_ERR(icn6211->enable_gpio)) {
 		ret = PTR_ERR(icn6211->enable_gpio);
-		dev_err(dev, "failed to request enable GPIO: %d\n", ret);
-		return ret;
+		pr_err( "failed to request enable GPIO: %d\n", ret);
+		//return ret;
 	}
 
 	icn6211->mipi_lane_pn_swap = of_property_read_bool(dev->of_node,
@@ -564,18 +583,21 @@ static int icn6211_i2c_probe(struct i2c_client *client,
 	icn6211->regmap = devm_regmap_init_i2c(client, &icn6211_regmap_config);
 	if (IS_ERR(icn6211->regmap)) {
 		ret = PTR_ERR(icn6211->regmap);
-		dev_err(dev, "failed to initialize regmap: %d\n", ret);
-		return ret;
+		pr_err( "failed to initialize regmap: %d\n", ret);
+		//return ret;
 	}
 
 	icn6211->base.funcs = &icn6211_bridge_funcs;
 	icn6211->base.of_node = dev->of_node;
 	ret = drm_bridge_add(&icn6211->base);
 	if (ret) {
-		dev_err(dev, "failed to add drm_bridge: %d\n", ret);
-		return ret;
+		pr_err( "failed to add drm_bridge: %d\n", ret);
+		//return ret;
+	} else {
+		pr_err("%s: Add drm_bridge success!\n", __func__);
 	}
 
+	pr_err("icn6211 probed successfully");
 	return 0;
 }
 
@@ -585,6 +607,7 @@ static int icn6211_i2c_remove(struct i2c_client *client)
 
 	drm_bridge_remove(&icn6211->base);
 
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
