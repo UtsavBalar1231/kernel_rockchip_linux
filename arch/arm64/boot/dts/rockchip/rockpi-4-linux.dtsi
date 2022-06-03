@@ -283,6 +283,20 @@
 	};
 };
 
+&cluster0_opp {
+	opp-1512000000 {
+		opp-hz = /bits/ 64 <1512000000>;
+		opp-microvolt = <1150000>;
+	};
+};
+
+&cluster1_opp {
+	opp-2016000000 {
+		opp-hz = /bits/ 64 <2016000000>;
+		opp-microvolt = <1250000>;
+	};
+};
+
 &hdmi {
 	#address-cells = <1>;
 	#size-cells = <0>;
