@@ -31,7 +31,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
+#define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
@@ -501,8 +501,11 @@ static inline void read_grf_reg(struct mipidphy_priv *priv,
 {
 	const struct dphy_reg *reg = &priv->grf_regs[index];
 
-	if (reg->offset)
+	if (reg->offset) {
 		regmap_read(priv->regmap_grf, reg->offset, val);
+		pr_info("%s: reading register value: 0x%x at offset: 0x%x\n",
+			__func__, val, reg->offset);
+	}
 }
 
 static inline void write_grf_reg(struct mipidphy_priv *priv,
@@ -511,16 +514,23 @@ static inline void write_grf_reg(struct mipidphy_priv *priv,
 	const struct dphy_reg *reg = &priv->grf_regs[index];
 	unsigned int val = HIWORD_UPDATE(value, reg->mask, reg->shift);
 
-	if (reg->offset)
+	if (reg->offset) {
 		regmap_write(priv->regmap_grf, reg->offset, val);
+		pr_info("%s: writing register value: 0x%x at offset: 0x%x\n",
+			__func__, val, reg->offset);
+	}
 }
 
 static inline void read_txrx_reg(struct mipidphy_priv *priv, int index, u32 *val)
 {
 	const struct txrx_reg *reg = &priv->txrx_regs[index];
 
-	if (reg->offset)
+	if (reg->offset) {
 		*val = readl(priv->txrx_base_addr + reg->offset);
+		pr_info("%s: reading register value: 0x%x at offset: 0x%x\n",
+			__func__, val, reg->offset);
+	}
+
 }
 
 static inline void write_txrx_reg(struct mipidphy_priv *priv,
@@ -528,13 +538,17 @@ static inline void write_txrx_reg(struct mipidphy_priv *priv,
 {
 	const struct txrx_reg *reg = &priv->txrx_regs[index];
 
-	if (reg->offset)
+	if (reg->offset) {
 		writel(value, priv->txrx_base_addr + reg->offset);
+		pr_info("%s: writing register value: 0x%x at offset: 0x%x\n",
+			__func__, value, reg->offset);
+	}
 }
 
 static u32 mipidphy0_wr_reg(struct mipidphy_priv *priv,
 			    u8 test_code, u8 test_data, bool is_delay)
 {
+	pr_err("%s\n", __func__);
 	u32 val = 0x0;
 
 	/* Start to write test code,Set TESTCLK to high */
@@ -571,6 +585,7 @@ static u32 mipidphy0_wr_reg(struct mipidphy_priv *priv,
 static u32 mipidphy1_wr_reg(struct mipidphy_priv *priv, unsigned char addr,
 			    unsigned char data, bool is_delay)
 {
+	pr_err("%s\n", __func__);
 	u32 val = 0x0;
 
 	/* Start to write test code,Set TESTCLK to high */
@@ -618,7 +633,7 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 	udelay(1);
 
 	aux_tripu = (testdout & 0x80) >> 7;/* get bit7 */
-	dev_info(priv->dev, ">>phy0 11>>testdin = 0x%x, testout=0x%x, aux_tripu = 0x%x\n",
+	pr_info( ">>phy0 11>>testdin = 0x%x, testout=0x%x, aux_tripu = 0x%x\n",
 		 testdin, testdout, aux_tripu);
 	/* step 2 & step 3 */
 	for (i = 1; i < 8; i++) {/* sweep from 001 to 111 */
@@ -628,7 +643,7 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 		usleep_range(10, 15);
 
 		temp = (testdout & 0x80) >> 7;/* get bit7 */
-		dev_info(priv->dev, ">>phy0 22>>testdin = 0x%x,testout=0x%x,err:0x%x,done:0x%x,re-loop:0x%x\n",
+		pr_info( ">>phy0 22>>testdin = 0x%x,testout=0x%x,err:0x%x,done:0x%x,re-loop:0x%x\n",
 			 testdin, testdout, (testdout & 0x40) >> 6,
 			 (testdout & 0x20) >> 5, (testdout & 0x1c) >> 2);
 
@@ -645,7 +660,7 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 		if (temp != aux_tripu) {
 			aux_a = i;/* save TESTDIN[4:2] */
 			aux_tripu = temp;
-			dev_info(priv->dev, ">>phy0 22-s0>>aux_a = 0x%x, aux_tripu=0x%x\n",
+			pr_info( ">>phy0 22-s0>>aux_a = 0x%x, aux_tripu=0x%x\n",
 				 aux_a, aux_tripu);
 		}
 	}
@@ -654,12 +669,12 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 		if (aux_tripu == 0) {
 			/* set	TESTDIN[4:2] to 000 */
 			testdin = testdin & (~0x1c);
-			dev_info(priv->dev, ">>phy0 aa>>testdin = 0x%x\n", testdin);
+			pr_info( ">>phy0 aa>>testdin = 0x%x\n", testdin);
 			mipidphy0_wr_reg(priv, 0x21, testdin, 1);
 		} else if (aux_tripu == 1) {
 			/* set	TESTDIN[4:2] to 111 */
 			testdin = testdin | 0x1c;
-			dev_info(priv->dev, ">>phy0 bb>>testdin = 0x%x\n", testdin);
+			pr_info( ">>phy0 bb>>testdin = 0x%x\n", testdin);
 			mipidphy0_wr_reg(priv, 0x21, testdin, 1);
 		}
 	}
@@ -670,7 +685,7 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 		/* set TESTIN[4:2] to 011 */
 		testdin = (testdin | 0xc) & 0xef;
 		mipidphy0_wr_reg(priv, 0x21, testdin, 1);
-		dev_info(priv->dev, "mipi phy0 calibrate fail, testdin:0x%x\n", testdin);
+		pr_info( "mipi phy0 calibrate fail, testdin:0x%x\n", testdin);
 		goto end;
 	}
 
@@ -681,7 +696,7 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 		testdout = mipidphy0_wr_reg(priv, 0x21, testdin, 1);
 		udelay(1);
 		temp = (testdout & 0x80) >> 7;
-		dev_info(priv->dev, ">>phy0 33>>testdin = 0x%x, testout=0x%x, j =%d",
+		pr_info( ">>phy0 33>>testdin = 0x%x, testout=0x%x, j =%d",
 			 testdin, testdout, j);
 		if (temp != aux_tripd) {
 			aux_b = j;/* save TESTDIN[4:2] */
@@ -700,7 +715,7 @@ static int mipidphy0_calibration(struct mipidphy_priv *priv)
 		testdin = (testdin & (~0x1c)) | (temp << 2);
 		testdout = mipidphy0_wr_reg(priv, 0x21, testdin, 1);
 		/* udelay(10); */
-		dev_info(priv->dev, ">>phy0 44>>testdin=0x%x, testout=0x%x, aux_a=0x%x,aux_b=0x%x, temp=0x%x\n",
+		pr_info( ">>phy0 44>>testdin=0x%x, testout=0x%x, aux_a=0x%x,aux_b=0x%x, temp=0x%x\n",
 			 testdin, testdout, aux_a, aux_b, temp);
 	}
 end:
@@ -719,7 +734,7 @@ static int mipidphy1_calibration(struct mipidphy_priv *priv)
 	testdout = mipidphy1_wr_reg(priv, 0x21, testdin, 1);
 
 	aux_tripu = (testdout & 0x80) >> 7;/* get bit7 */
-	dev_info(priv->dev, ">>11>>testdin=0x%x, testout=0x%x, aux_tripu=0x%x",
+	pr_info( ">>11>>testdin=0x%x, testout=0x%x, aux_tripu=0x%x",
 		 testdin, testdout, aux_tripu);
 
 	/* step 2 & step 3 */
@@ -728,7 +743,7 @@ static int mipidphy1_calibration(struct mipidphy_priv *priv)
 		testdin = (testdin & (~0x1c)) | (temp << 2);
 		testdout = mipidphy1_wr_reg(priv, 0x21, testdin, 1);
 		temp = (testdout & 0x80) >> 7;/* get bit7 */
-		dev_info(priv->dev, ">>22>>testdin=0x%x, testout=0x%x, err:0x%x, done:0x%x, re-loop:0x%x, temp:0x%x\n",
+		pr_info( ">>22>>testdin=0x%x, testout=0x%x, err:0x%x, done:0x%x, re-loop:0x%x, temp:0x%x\n",
 			 testdin, testdout, (testdout & 0x40) >> 6,
 			 (testdout & 0x20) >> 5, (testdout & 0x1c) >> 2,
 			 temp);
@@ -746,18 +761,18 @@ static int mipidphy1_calibration(struct mipidphy_priv *priv)
 		if (temp != aux_tripu) {
 			aux_a = i;/* save TESTDIN[4:2] */
 			aux_tripu = temp;
-			dev_info(priv->dev, ">>phy1 22-s0>>aux_a=0x%x, aux_tripu=0x%x\n", aux_a, aux_tripu);
+			pr_info( ">>phy1 22-s0>>aux_a=0x%x, aux_tripu=0x%x\n", aux_a, aux_tripu);
 		}
 	}
 
 	if (aux_a_valid == 0) {
 		if (aux_tripu == 0) {
 			testdin = testdin & (~0x1c);
-			dev_info(priv->dev, ">>aa>>testdin = 0x%x", testdin);
+			pr_info( ">>aa>>testdin = 0x%x", testdin);
 			mipidphy1_wr_reg(priv, 0x21, testdin, 1);
 		} else if (aux_tripu == 1) {
 			testdin = testdin | 0x1c;
-			dev_info(priv->dev, ">>bb>>testdin = 0x%x", testdin);
+			pr_info( ">>bb>>testdin = 0x%x", testdin);
 			mipidphy1_wr_reg(priv, 0x21, testdin, 1);
 		}
 		goto end;
@@ -768,7 +783,7 @@ static int mipidphy1_calibration(struct mipidphy_priv *priv)
 	if (aux_tripd != aux_tripu) {
 		testdin = (testdin | 0xc) & 0xef;/* set TESTIN[4:2] to 011 */
 		mipidphy1_wr_reg(priv, 0x21, testdin, 0);
-		dev_info(priv->dev, "mipi phy calibrate fail.");
+		pr_info( "mipi phy calibrate fail.");
 		goto end;
 	}
 
@@ -778,7 +793,7 @@ static int mipidphy1_calibration(struct mipidphy_priv *priv)
 		testdin = (testdin & (~0x1c)) | (temp << 2);
 		testdout = mipidphy1_wr_reg(priv, 0x21, testdin, 1);
 		temp = (testdout & 0x80) >> 7;
-		dev_info(priv->dev, ">>33>>testdin=0x%x, testout=0x%x, err:0x%x, done:0x%x, re-loop:0x%x, temp=%d",
+		pr_info( ">>33>>testdin=0x%x, testout=0x%x, err:0x%x, done:0x%x, re-loop:0x%x, temp=%d",
 			 testdin, testdout, (testdout & 0x40) >> 6,
 			 (testdout & 0x20) >> 5, (testdout & 0x1c) >> 2,
 			 temp);
@@ -799,7 +814,7 @@ static int mipidphy1_calibration(struct mipidphy_priv *priv)
 
 		testdin = (testdin & (~0x1c)) | (temp << 2);
 		testdout = mipidphy1_wr_reg(priv, 0x21, testdin, 1);
-		dev_info(priv->dev, ">>44>>testdin=0x%x, testout=0x%x, err:0x%x, done:0x%x, re-loop:0x%x, aux_a=0x%x,aux_b = 0x%x, temp = 0x%x",
+		pr_info( ">>44>>testdin=0x%x, testout=0x%x, err:0x%x, done:0x%x, re-loop:0x%x, aux_a=0x%x,aux_b = 0x%x, temp = 0x%x",
 			 testdin, testdout, (testdout & 0x40) >> 6,
 			 (testdout & 0x20) >> 5, (testdout & 0x1c) >> 2,
 			 aux_a, aux_b, temp);
@@ -813,8 +828,11 @@ static inline void write_csiphy_reg(struct mipidphy_priv *priv,
 {
 	const struct csiphy_reg *reg = &priv->csiphy_regs[index];
 
-	if (reg->offset != MIPI_CSI_DPHY_CTRL_INVALID_OFFSET)
+	if (reg->offset != MIPI_CSI_DPHY_CTRL_INVALID_OFFSET) {
 		writel(value, priv->csihost_base_addr + reg->offset);
+		pr_info("%s: writing csiphy reg value: 0x%x at addr: 0x%x\n",
+			__func__, value, priv->csihost_base_addr + reg->offset);
+	}
 }
 
 static inline void read_csiphy_reg(struct mipidphy_priv *priv,
@@ -822,8 +840,11 @@ static inline void read_csiphy_reg(struct mipidphy_priv *priv,
 {
 	const struct csiphy_reg *reg = &priv->csiphy_regs[index];
 
-	if (reg->offset != MIPI_CSI_DPHY_CTRL_INVALID_OFFSET)
+	if (reg->offset != MIPI_CSI_DPHY_CTRL_INVALID_OFFSET) {
 		*value = readl(priv->csihost_base_addr + reg->offset);
+		pr_info("%s: writing csiphy reg value: 0x%x at addr: 0x%x\n",
+			__func__, value, priv->csihost_base_addr + reg->offset);
+	}
 }
 
 static void csi_mipidphy_wr_ths_settle(struct mipidphy_priv *priv, int hsfreq,
@@ -865,8 +886,7 @@ static struct v4l2_subdev *get_remote_sink_dev(struct v4l2_subdev *sd)
 	local = &sd->entity.pads[MIPI_DPHY_RX_PAD_SOURCE];
 	remote = media_entity_remote_pad(local);
 	if (!remote) {
-		v4l2_warn(sd, "No link between dphy and cif or isp\n");
-
+		v4l2_warn(sd, "[vaaman]: No link between dphy and cif or isp\n");
 		return NULL;
 	}
 
@@ -883,7 +903,7 @@ static struct v4l2_subdev *get_remote_sensor(struct v4l2_subdev *sd)
 	local = &sd->entity.pads[MIPI_DPHY_RX_PAD_SINK];
 	remote = media_entity_remote_pad(local);
 	if (!remote) {
-		v4l2_warn(sd, "No link between dphy and sensor\n");
+		v4l2_warn(sd, "[vaaman]: No link between dphy and sensor\n");
 		return NULL;
 	}
 
@@ -901,6 +921,7 @@ static struct mipidphy_sensor *sd_to_sensor(struct mipidphy_priv *priv,
 			return &priv->sensors[i];
 	}
 
+	pr_info("%s: returned NULL\n", __func__);
 	return NULL;
 }
 
@@ -914,24 +935,25 @@ static int mipidphy_get_sensor_data_rate(struct v4l2_subdev *sd)
 
 	link_freq = v4l2_ctrl_find(sensor_sd->ctrl_handler, V4L2_CID_LINK_FREQ);
 	if (!link_freq) {
-		v4l2_warn(sd, "No pixel rate control in subdev\n");
+		v4l2_warn(sd, "[vaaman]: No pixel rate control in subdev\n");
 		return -EPIPE;
 	}
 
 	qm.index = v4l2_ctrl_g_ctrl(link_freq);
 	ret = v4l2_querymenu(sensor_sd->ctrl_handler, &qm);
 	if (ret < 0) {
-		v4l2_err(sd, "Failed to get menu item\n");
+		v4l2_err(sd, "[vaaman]: Failed to get menu item\n");
 		return ret;
 	}
 
 	if (!qm.value) {
-		v4l2_err(sd, "Invalid link_freq\n");
+		v4l2_err(sd, "[vaaman]: Invalid link_freq\n");
 		return -EINVAL;
 	}
 	priv->data_rate_mbps = qm.value * 2;
 	do_div(priv->data_rate_mbps, 1000 * 1000);
 
+	pr_err("%s: data rate in mbps: %d\n", __func__, priv->data_rate_mbps);
 	return 0;
 }
 
@@ -950,15 +972,19 @@ static int mipidphy_update_sensor_mbus(struct v4l2_subdev *sd)
 	sensor->mbus = mbus;
 	switch (mbus.flags & V4L2_MBUS_CSI2_LANES) {
 	case V4L2_MBUS_CSI2_1_LANE:
+		pr_info("%s: sensors lanes = 1\n", __func__);
 		sensor->lanes = 1;
 		break;
 	case V4L2_MBUS_CSI2_2_LANE:
+		pr_info("%s: sensors lanes = 2\n", __func__);
 		sensor->lanes = 2;
 		break;
 	case V4L2_MBUS_CSI2_3_LANE:
+		pr_info("%s: sensors lanes = 3\n", __func__);
 		sensor->lanes = 3;
 		break;
 	case V4L2_MBUS_CSI2_4_LANE:
+		pr_info("%s: sensors lanes = 4\n", __func__);
 		sensor->lanes = 4;
 		break;
 	default:
@@ -973,12 +999,16 @@ static int mipidphy_s_stream_start(struct v4l2_subdev *sd)
 	struct mipidphy_priv *priv = to_dphy_priv(sd);
 	int  ret = 0;
 
-	if (priv->is_streaming)
+	if (priv->is_streaming) {
+		pr_info("%s streaming currently!\n", __func__);
 		return 0;
+	}
 
 	ret = mipidphy_get_sensor_data_rate(sd);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_info("%s: No data rate found from mipi dphy\n", __func__);
 		return ret;
+	}
 
 	mipidphy_update_sensor_mbus(sd);
 	priv->stream_on(priv, sd);
@@ -992,8 +1022,10 @@ static int mipidphy_s_stream_stop(struct v4l2_subdev *sd)
 {
 	struct mipidphy_priv *priv = to_dphy_priv(sd);
 
-	if (!priv->is_streaming)
+	if (!priv->is_streaming) {
+		pr_info("%s Not streaming currently!\n", __func__);
 		return 0;
+	}
 
 	if (priv->stream_off)
 		priv->stream_off(priv, sd);
@@ -1007,7 +1039,7 @@ static int mipidphy_s_stream(struct v4l2_subdev *sd, int on)
 	int ret = 0;
 	struct mipidphy_priv *priv = to_dphy_priv(sd);
 
-	dev_info(priv->dev, "%s(%d) enter on(%d) !\n",
+	pr_info( "%s(%d) enter on(%d) !\n",
 			__func__, __LINE__, on);
 	mutex_lock(&priv->mutex);
 	if (on)
@@ -1025,6 +1057,8 @@ static int mipidphy_g_frame_interval(struct v4l2_subdev *sd,
 
 	if (sensor)
 		return v4l2_subdev_call(sensor, video, g_frame_interval, fi);
+	else
+		pr_err("%s: No sensor found!\n", __func__);
 
 	return -EINVAL;
 }
@@ -1092,12 +1126,35 @@ err:
 	return ret;
 }
 
+static void mipidphy_print_set_fmt(struct v4l2_subdev_format *fmt)
+{
+	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
+		pr_info("subdev format is try\n");
+	else
+		pr_info("subdev format is active\n");
+
+	pr_info("subdev format is try\n");
+	pr_info("width: %d\n", fmt->format.width);
+	pr_info("height: %d\n", fmt->format.height);
+	pr_info("code: %d\n", fmt->format.code);
+	pr_info("field: %d\n", fmt->format.field);
+	pr_info("colorspace: %d\n", fmt->format.colorspace);
+	pr_info("ycbcr_enc: %d\n", fmt->format.ycbcr_enc);
+	pr_info("quantization: %d\n", fmt->format.quantization);
+	pr_info("xfer_func: %d\n", fmt->format.xfer_func);
+}
+
 /* dphy accepts all fmt/size from sensor */
 static int mipidphy_get_set_fmt(struct v4l2_subdev *sd,
 				struct v4l2_subdev_pad_config *cfg,
 				struct v4l2_subdev_format *fmt)
 {
 	struct v4l2_subdev *sensor = get_remote_sensor(sd);
+
+	if (fmt)
+		mipidphy_print_set_fmt(fmt);
+	else
+		pr_err("fmt is NULL\n");
 
 	/*
 	 * Do not allow format changes and just relay whatever
@@ -1310,11 +1367,11 @@ static int mipidphy_rx_stream_on(struct mipidphy_priv *priv,
 		bias_current = 0x01;
 		low_byte = (0x7f & (bias_current << 6)); /* 0x45 */
 		ret_val = mipidphy0_wr_reg(priv, 0x22, low_byte, true);
-		dev_info(priv->dev, "set test code[0x22] bit6:0:0x%x", ret_val);
+		pr_info( "set test code[0x22] bit6:0:0x%x", ret_val);
 
 		hig_byte = 0x88;
 		ret_val = mipidphy0_wr_reg(priv, 0x22, hig_byte, true);
-		dev_info(priv->dev, "set test code[0x22] bit10:7:0x%x", ret_val);
+		pr_info( "set test code[0x22] bit10:7:0x%x", ret_val);
 	}
 
 	/* Step14: Set ENABLE_N=1'b1, need to wait for taking effective */
@@ -1364,6 +1421,7 @@ static int mipidphy_rx_stream_on(struct mipidphy_priv *priv,
 	 */
 	usleep_range(100, 150);
 
+	pr_err("%s\n", __func__);
 	return 0;
 }
 
@@ -1383,6 +1441,11 @@ static int mipidphy_txrx_stream_on(struct mipidphy_priv *priv,
 	bool is_linked_isp;
 	u32 mipi_ctrl;
 	u8 ret_val;
+
+	if (sink_sd->name != NULL)
+		pr_info("%s isp name: %s", __func__, sink_sd->name);
+	else
+		pr_info("%s isp name is NULL", __func__);
 
 	if (strstr(sink_sd->name, "csi2"))
 		is_linked_isp = false;
@@ -1495,11 +1558,11 @@ static int mipidphy_txrx_stream_on(struct mipidphy_priv *priv,
 		bias_current = 0x01;
 		low_byte = (0x7f & (bias_current << 6)); /* 0x45 */
 		ret_val = mipidphy1_wr_reg(priv, 0x22, low_byte, true);
-		dev_info(priv->dev, "set test code[0x22] bit6:0:0x%x", ret_val);
+		pr_info( "set test code[0x22] bit6:0:0x%x", ret_val);
 
 		hig_byte = 0x88;
 		ret_val = mipidphy1_wr_reg(priv, 0x22, hig_byte, true);
-		dev_info(priv->dev, "set test code[0x22] bit10:7:0x%x", ret_val);
+		pr_info( "set test code[0x22] bit10:7:0x%x", ret_val);
 	}
 
 	/*
@@ -1562,7 +1625,7 @@ static int mipidphy_txrx_stream_on(struct mipidphy_priv *priv,
 		mipi_ctrl = readl(isp_mipi_ctrl);
 		mipi_ctrl |= 0x00000f00;
 		writel(mipi_ctrl, isp_mipi_ctrl);
-		dev_info(priv->dev, "enable mipi phy mipi_ctrl:0x%x\n", mipi_ctrl);
+		pr_info( "enable mipi phy mipi_ctrl:0x%x\n", mipi_ctrl);
 	}
 
 	/* Step19: d-phy calibration */
@@ -1575,6 +1638,7 @@ static int mipidphy_txrx_stream_on(struct mipidphy_priv *priv,
 	 */
 	usleep_range(100, 150);
 
+	pr_err("%s exit\n", __func__);
 	return 0;
 }
 
@@ -1600,8 +1664,7 @@ static int csi_mipidphy_stream_on(struct mipidphy_priv *priv,
 		write_csiphy_reg(priv, CSIPHY_CTRL_LANE_ENABLE, val);
 		read_csiphy_reg(priv, CSIPHY_CTRL_LANE_ENABLE, &tmp);
 		if (tmp != val)
-			dev_info_ratelimited(priv->dev,
-					     "expect val is 0x%x,the current is 0x%x, retry %u\n",
+			pr_info_ratelimited("expect val is 0x%x,the current is 0x%x, retry %u\n",
 					     val, tmp, retry);
 	} while ((tmp != val) && (retry--));
 
@@ -1658,6 +1721,7 @@ static int csi_mipidphy_stream_on(struct mipidphy_priv *priv,
 	write_grf_reg(priv, GRF_DPHY_CSIPHY_DATALANE_EN,
 		      GENMASK(sensor->lanes - 1, 0));
 
+	pr_err("%s exit\n", __func__);
 	return 0;
 }
 
@@ -1670,6 +1734,7 @@ static int csi_mipidphy_stream_off(struct mipidphy_priv *priv,
 	write_csiphy_reg(priv, CSIPHY_CTRL_PWRCTL, 0xe3);
 	usleep_range(500, 1000);
 
+	pr_err("%s exit\n", __func__);
 	return 0;
 }
 
@@ -1767,8 +1832,10 @@ rockchip_mipidphy_notifier_bound(struct v4l2_async_notifier *notifier,
 	struct mipidphy_sensor *sensor;
 	unsigned int pad, ret;
 
-	if (priv->num_sensors == ARRAY_SIZE(priv->sensors))
+	if (priv->num_sensors == ARRAY_SIZE(priv->sensors)) {
+		pr_err("%s: All sensors in use currently!\n", __func__);
 		return -EBUSY;
+	}
 
 	sensor = &priv->sensors[priv->num_sensors++];
 	sensor->lanes = s_asd->lanes;
@@ -1781,7 +1848,7 @@ rockchip_mipidphy_notifier_bound(struct v4l2_async_notifier *notifier,
 			break;
 
 	if (pad == sensor->sd->entity.num_pads) {
-		dev_err(priv->dev,
+		pr_err(
 			"failed to find src pad for %s\n",
 			sensor->sd->name);
 
@@ -1794,7 +1861,7 @@ rockchip_mipidphy_notifier_bound(struct v4l2_async_notifier *notifier,
 				       priv->num_sensors != 1 ? 0 :
 				       MEDIA_LNK_FL_ENABLED);
 	if (ret) {
-		dev_err(priv->dev,
+		pr_err(
 			"failed to create link for %s\n",
 			sensor->sd->name);
 		return ret;
@@ -1832,12 +1899,12 @@ static int rockchip_mipidphy_fwnode_parse(struct device *dev,
 	struct v4l2_mbus_config *config = &s_asd->mbus;
 
 	if (vep->bus_type != V4L2_MBUS_CSI2) {
-		dev_err(dev, "Only CSI2 bus type is currently supported\n");
+		pr_err( "Only CSI2 bus type is currently supported\n");
 		return -EINVAL;
 	}
 
 	if (vep->base.port != 0) {
-		dev_err(dev, "The PHY has only port 0\n");
+		pr_err( "The PHY has only port 0\n");
 		return -EINVAL;
 	}
 
@@ -1876,25 +1943,31 @@ static int rockchip_mipidphy_media_init(struct mipidphy_priv *priv)
 
 	ret = media_entity_init(&priv->sd.entity,
 				MIPI_DPHY_RX_PADS_NUM, priv->pads, 0);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("%s: Failed to init media entity\n", __func__);
 		return ret;
+	}
 
 	ret = v4l2_async_notifier_parse_fwnode_endpoints_by_port(priv->dev,
 								 &priv->notifier,
 								 sizeof(struct sensor_async_subdev),
 								 0,
 								 rockchip_mipidphy_fwnode_parse);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("%s: Failed to parse endpoints port\n", __func__);
 		return ret;
+	}
 
-	if (!priv->notifier.num_subdevs)
+	if (!priv->notifier.num_subdevs) {
+		pr_err("%s: No endpoints found!\n", __func__);
 		return -ENODEV;	/* no endpoint */
+	}
 
 	priv->sd.subdev_notifier = &priv->notifier;
 	priv->notifier.ops = &rockchip_mipidphy_async_ops;
 	ret = v4l2_async_subdev_notifier_register(&priv->sd, &priv->notifier);
 	if (ret) {
-		dev_err(priv->dev,
+		pr_err(
 			"failed to register async notifier : %d\n", ret);
 		v4l2_async_notifier_cleanup(&priv->notifier);
 		return ret;
@@ -1920,15 +1993,18 @@ static int rockchip_mipidphy_probe(struct platform_device *pdev)
 	priv->dev = dev;
 
 	of_id = of_match_device(rockchip_mipidphy_match_id, dev);
-	if (!of_id)
+	if (!of_id) {
+		pr_err("%s no mipi dphy device found!\n", __func__);
 		return -EINVAL;
+	} else
+		pr_err("%s: mipi dphy device name: %s\n", of_id->name);
 
 	grf = syscon_node_to_regmap(dev->parent->of_node);
 	if (IS_ERR(grf)) {
 		grf = syscon_regmap_lookup_by_phandle(dev->of_node,
 						      "rockchip,grf");
 		if (IS_ERR(grf)) {
-			dev_err(dev, "Can't find GRF syscon\n");
+			pr_err( "%s: Can't find GRF syscon\n", __func__);
 			return -ENODEV;
 		}
 	}
@@ -1939,7 +2015,7 @@ static int rockchip_mipidphy_probe(struct platform_device *pdev)
 		priv->clks[i] = devm_clk_get(dev, drv_data->clks[i]);
 
 		if (IS_ERR(priv->clks[i]))
-			dev_dbg(dev, "Failed to get %s\n", drv_data->clks[i]);
+			pr_err("Failed to get %s\n", drv_data->clks[i]);
 	}
 
 	priv->grf_regs = drv_data->grf_regs;
@@ -1958,7 +2034,7 @@ static int rockchip_mipidphy_probe(struct platform_device *pdev)
 		if (res) {
 			priv->txrx_base_addr = devm_ioremap_resource(dev, res);
 			if (IS_ERR(priv->txrx_base_addr)) {
-				dev_err(dev, "Failed to ioremap resource\n");
+				pr_err( "%s: Failed to ioremap resource\n", __func__);
 				return PTR_ERR(priv->txrx_base_addr);
 			}
 		} else {
@@ -1977,8 +2053,10 @@ static int rockchip_mipidphy_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, &sd->entity);
 
 	ret = rockchip_mipidphy_media_init(priv);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("%s: rockchip_mipidphy_media_init failed!\n", __func__);
 		goto destroy_mutex;
+	}
 
 	pm_runtime_enable(&pdev->dev);
 	drv_data->individual_init(priv);
