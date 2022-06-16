@@ -1408,6 +1408,9 @@ static int mipidphy_txrx_stream_on(struct mipidphy_priv *priv,
 			 priv->data_rate_mbps, hsfreq_ranges[i].range_h + 1);
 		hsfreq = hsfreq_ranges[i].cfg_bit;
 	}
+	printk("[Vaaman]data rate: %lld mbps, max support %d mbps",
+			 priv->data_rate_mbps, hsfreq_ranges[i].range_h + 1);
+		hsfreq = hsfreq_ranges[i].cfg_bit;
 
 	/*
 	 *Config rk3288:

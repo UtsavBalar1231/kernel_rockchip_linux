@@ -743,25 +743,9 @@
 		rockchip,camera-module-lens-name = "default";
 
 		port {
-			ucam_out0: endpoint {
-				remote-endpoint = <&mipi_in_ucam0>;
-				data-lanes = <1 2>;
-			};
-		};
-	};
-
-	camera2: camera-module@36 {
-		status = "disabled";
-		compatible = "ovti,ov5647";
-		reg = <0x36>;
-
-		clocks = <&cru SCLK_CIF_OUT>;
-		clock-names = "clk_cif_out";
-		pinctrl-names = "rockchip,camera_default";
-
-		port {
 			ucam_out1: endpoint {
-				remote-endpoint = <&mipi_in_ucam0>;
+				//remote-endpoint = <&mipi_in_ucam0>;
+				remote-endpoint = <&mipi_in_ucam1>;
 				data-lanes = <1 2>;
 			};
 		};
@@ -1209,20 +1193,52 @@
 	status = "okay";
 };
 
-&rkisp1_0 {
+&rkisp1_1 {
 	status = "okay";
 	port {
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		isp0_mipi_in: endpoint@0 {
+		isp1_mipi_in: endpoint@0 {
 			reg = <0>;
-			remote-endpoint = <&dphy_rx0_out>;
+			remote-endpoint = <&dphy_tx1rx1_out>;
 		};
 	};
 };
 
-&mipi_dphy_rx0 {
+// &mipi_dphy_tx1rx1 {
+// 	status = "okay";
+
+// 	ports {
+// 		#address-cells = <1>;
+// 		#size-cells = <0>;
+
+// 		port@0 {
+// 			reg = <0>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
+
+// 			mipi_in_ucam0: endpoint@1 {
+// 				reg = <1>;
+// 				remote-endpoint = <&ucam_out0>;
+// 				data-lanes = <1 2>;
+// 			};
+// 		};
+
+// 		port@1 {
+// 			reg = <1>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
+
+// 			dphy_tx1rx1_out: endpoint@0 {
+// 				reg = <0>;
+// 				remote-endpoint = <&isp1_mipi_in>;
+// 			};
+// 		};
+// 	};
+// };
+
+&mipi_dphy_tx1rx1 {
 	status = "okay";
 
 	ports {
@@ -1234,9 +1250,9 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			mipi_in_ucam0: endpoint@1 {
+			mipi_in_ucam1: endpoint@1 {
 				reg = <1>;
-				remote-endpoint = <&ucam_out0>;
+				remote-endpoint = <&ucam_out1>;
 				data-lanes = <1 2>;
 			};
 		};
@@ -1246,22 +1262,56 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			dphy_rx0_out: endpoint@0 {
+			dphy_tx1rx1_out: endpoint@0 {
 				reg = <0>;
-				remote-endpoint = <&isp0_mipi_in>;
+				remote-endpoint = <&isp1_mipi_in>;
 			};
+			
 		};
 	};
 };
 
 
+// &mipi_dphy_rx0 {
+// 	status = "okay";
+
+// 	ports {
+// 		#address-cells = <1>;
+// 		#size-cells = <0>;
+
+// 		port@0 {
+// 			reg = <0>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
+
+// 			mipi_in_ucam0: endpoint@1 {
+// 				reg = <1>;
+// 				remote-endpoint = <&ucam_out0>;
+// 				data-lanes = <1 2>;
+// 			};
+// 		};
+
+// 		port@1 {
+// 			reg = <1>;
+// 			#address-cells = <1>;
+// 			#size-cells = <0>;
+
+// 			dphy_rx0_out: endpoint@0 {
+// 				reg = <0>;
+// 				remote-endpoint = <&isp0_mipi_in>;
+// 			};
+// 		};
+// 	};
+// };
+
+
 &isp0_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 
 &isp1_mmu {
-	status = "disabled";
+	status = "okay";
 };
 
 &vpu {
@@ -1281,7 +1331,7 @@
 };
 
 &dsi1_in_vopl {
-	status = "okay";
+	status = "disabled";
 };
 
 &dsi1_in_vopb {
@@ -1293,7 +1343,7 @@
  };
 
 &route_dsi1{
-	status = "okay";
+	status = "disabled";
 	connect = <&vopl_out_dsi1>;
 };
 
