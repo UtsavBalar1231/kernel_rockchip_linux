@@ -20,7 +20,7 @@
 DATE=$(date +"%d.%m.%y")
 OUT_DIR=$(pwd)/out/
 
-#PATH=$HOME/gcc-arm64/bin:$HOME/gcc-arm/bin:$PATH
+PATH=$HOME/usr/local/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin:$PATH
 FILENAME=${OUT_DIR}/boot.img
 KERNEL_IMAGE="${OUT_DIR}/arch/arm64/boot/Image"
 DTB_FILE="${OUT_DIR}/arch/arm64/boot/dts/rockchip/rockpi-4b-linux.dtb"
@@ -33,10 +33,7 @@ fi
 ARGS="ARCH=arm64 \
 O=${OUT_DIR} \
 CROSS_COMPILE=aarch64-linux-gnu- \
-CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
 -j${KEBABS}"
-
-export CROSS_COMPILE=aarch64-linux-gnu-
 
 if [[ "$@" =~ "debian"* ]]; then
 	echo -e "###### USING DEBIAN EXTLINUX CONFIG #####"
@@ -58,6 +55,8 @@ make -j${KEBABS} ${ARGS} rockchip_linux_defconfig
 # Make kernel Image
 make -j${KEBABS} ${ARGS} 2>&1 | tee build.log
 
+if [[ -f $KERNEL_IMAGE ]] && [[ -f $DTB_FILE ]]; then
+
 # Pack Image into boot image
 mkfs.vfat -n "boot" -S 512 -C $FILENAME $((100 * 1024))
 
@@ -70,7 +69,12 @@ mcopy -i $FILENAME -s $EXTLINUX_CONF ::/extlinux/extlinux.conf
 mcopy -i $FILENAME -s $KERNEL_IMAGE ::
 mcopy -i $FILENAME -s $DTB_FILE ::/rk3399-vaaman-rev01.dtb
 
+else
+
+echo -e "Kernel build failed!!"
+
+fi
+
 cd $(pwd) || exit
 
-cp $KERNEL_IMAGE $HOME/out/
-echo "Bootimage is ready to be pulled"
+pd upload $OUT_DIR/boot.img

@@ -32,6 +32,8 @@
  * SOFTWARE.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/clk.h>
 #include <linux/iopoll.h>
 #include <linux/pm_runtime.h>
@@ -91,6 +93,7 @@ static struct v4l2_subdev *get_remote_sensor(struct v4l2_subdev *sd)
 	local = &sd->entity.pads[RKISP1_ISP_PAD_SINK];
 	if (!local)
 		return NULL;
+
 	remote = media_entity_remote_pad(local);
 	if (!remote)
 		return NULL;
@@ -116,8 +119,10 @@ static void get_remote_mipi_sensor(struct rkisp1_device *dev,
 	}
 	mutex_unlock(&mdev->graph_mutex);
 
-	if (entity)
+	if (entity) {
 		*sensor_sd = media_entity_to_v4l2_subdev(entity);
+		pr_err("%s: sensor name = %s\n", __func__, *sensor_sd->name);
+	}
 	else
 		*sensor_sd = NULL;
 }
@@ -131,6 +136,7 @@ static struct rkisp1_sensor_info *sd_to_sensor(struct rkisp1_device *dev,
 		if (dev->sensors[i].sd == sd)
 			return &dev->sensors[i];
 
+	pr_err("%s: returned NULL\n", __func__);
 	return NULL;
 }
 
@@ -142,21 +148,28 @@ int rkisp1_update_sensor_info(struct rkisp1_device *dev)
 	int ret = 0;
 
 	sensor_sd = get_remote_sensor(sd);
-	if (!sensor_sd)
+	if (!sensor_sd) {
+		pr_err("%s: No sensor device!", __func__);
 		return -ENODEV;
+	}
 
 	sensor = sd_to_sensor(dev, sensor_sd);
 	ret = v4l2_subdev_call(sensor->sd, video, g_mbus_config,
 			       &sensor->mbus);
-	if (ret && ret != -ENOIOCTLCMD)
+	if (ret && ret != -ENOIOCTLCMD) {
+		pr_err("%s: video g_mbus_config mbus calls to NULL\n", __func__);
 		return ret;
+	}
 	sensor->fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
 	ret = v4l2_subdev_call(sensor->sd, pad, get_fmt,
 			       &sensor->cfg, &sensor->fmt);
-	if (ret && ret != -ENOIOCTLCMD)
+	if (ret && ret != -ENOIOCTLCMD) {
+		pr_err("%s: pad get_fmt cfg fmt calls to NULL!\n", __func__);
 		return ret;
+	}
 	dev->active_sensor = sensor;
 
+	pr_err("%s\n", __func__);
 	return ret;
 }
 
@@ -205,6 +218,7 @@ u32 rkisp1_mbus_pixelcode_to_v4l2(u32 pixelcode)
 		pixelformat = V4L2_PIX_FMT_SRGGB10;
 	}
 
+	pr_err("%s: pixelformat: 0x%x\n", __func__, pixelformat);
 	return pixelformat;
 }
 
@@ -293,22 +307,28 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 	in_crop = &dev->isp_sdev.in_crop;
 
 	if (in_fmt->fmt_type == FMT_BAYER) {
+		pr_err("%s: in_fmt->fmt_type == FMT_BAYER\n", __func__);
 		acq_mult = 1;
 		if (out_fmt->fmt_type == FMT_BAYER) {
+			pr_err("%s: out_fmt->fmt_type == FMT_BAYER\n", __func__);
 			if (sensor && sensor->mbus.type == V4L2_MBUS_BT656)
 				isp_ctrl =
 					CIF_ISP_CTRL_ISP_MODE_RAW_PICT_ITU656;
-			else
+			else {
 				isp_ctrl =
 					CIF_ISP_CTRL_ISP_MODE_RAW_PICT;
+				pr_err("%s: isp_ctrl is CIF_ISP_CTRL_ISP_MODE_RAW_PICT\n", __func__);
+			}
 		} else {
 			/* demosaicing bypass for grey sensor */
 			if (in_fmt->mbus_code == MEDIA_BUS_FMT_Y8_1X8 ||
 			    in_fmt->mbus_code == MEDIA_BUS_FMT_Y10_1X10 ||
-			    in_fmt->mbus_code == MEDIA_BUS_FMT_Y12_1X12)
+			    in_fmt->mbus_code == MEDIA_BUS_FMT_Y12_1X12) {
 				writel(CIF_ISP_DEMOSAIC_BYPASS |
 				       CIF_ISP_DEMOSAIC_TH(0xc),
 				       base + CIF_ISP_DEMOSAIC);
+				pr_err("%s: in_fmt->mbus_code == MEDIA_BUS_FMT_Y8/Y10/Y12\n", __func__);
+			}
 			else
 				writel(CIF_ISP_DEMOSAIC_TH(0xc),
 				       base + CIF_ISP_DEMOSAIC);
@@ -322,6 +342,7 @@ static int rkisp1_config_isp(struct rkisp1_device *dev)
 		if (dev->isp_inp == INP_DMARX_ISP)
 			acq_prop = CIF_ISP_ACQ_PROP_DMA_RGB;
 	} else if (in_fmt->fmt_type == FMT_YUV) {
+		pr_err("%s: in_fmt->fmt_type == FMT_YUV\n", __func__);
 		acq_mult = 2;
 		if (sensor && sensor->mbus.type == V4L2_MBUS_CSI2) {
 			isp_ctrl = CIF_ISP_CTRL_ISP_MODE_ITU601;
@@ -468,11 +489,14 @@ static int rkisp1_config_mipi(struct rkisp1_device *dev)
 		return -EINVAL;
 	}
 
+	pr_err("%s: v4l2 lanes: %d\n", __func__, lanes);
+
 	emd_vc = 0xFF;
 	emd_dt = 0;
 	dev->hdr_sensor = NULL;
 	get_remote_mipi_sensor(dev, &mipi_sensor);
 	if (mipi_sensor) {
+		pr_err("%s: mipi_sensor name: %s\n", __func__, mipi_sensor->name);
 		ctrl = v4l2_ctrl_find(mipi_sensor->ctrl_handler,
 				      CIFISP_CID_EMB_VC);
 		if (ctrl)
@@ -1651,8 +1675,10 @@ int rkisp1_register_isp_subdev(struct rkisp1_device *isp_dev,
 	isp_sdev->pads[RKISP1_ISP_PAD_SOURCE_STATS].flags = MEDIA_PAD_FL_SOURCE;
 	ret = media_entity_init(&sd->entity, RKISP1_ISP_PAD_MAX,
 				isp_sdev->pads, 0);
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("%s: media entity pads init failure (%d)\n", __func__, ret);
 		return ret;
+	}
 
 	sd->owner = THIS_MODULE;
 	v4l2_set_subdevdata(sd, isp_dev);
@@ -1703,6 +1729,9 @@ void rkisp1_mipi_isr(unsigned int mis, struct rkisp1_device *dev)
 		writel(val & ~CIF_MIPI_ERR_DPHY, base + CIF_MIPI_IMSC);
 		dev->isp_sdev.dphy_errctrl_disabled = true;
 	}
+
+	pr_err("[vaaman]: mis: 0x%x and CIF_MIPI_FRAME_END: 0x%x",
+		mis, CIF_MIPI_FRAME_END);
 
 	/*
 	 * Enable DPHY errctrl interrupt again, if mipi have receive
