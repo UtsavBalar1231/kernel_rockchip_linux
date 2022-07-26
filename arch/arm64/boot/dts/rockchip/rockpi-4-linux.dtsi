@@ -774,6 +774,14 @@
 
 &i2c7 {
 	status = "okay";
+
+	pcf8575: gpio@20{
+		status = "okay";
+		compatible = "nxp,pcf8575";
+		reg = <0x20>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
 };
 
 &cpu_l0 {

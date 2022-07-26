@@ -1,3 +1,4 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 /*
  * Driver for pcf857x, pca857x, and pca967x I2C GPIO expanders
  *
@@ -217,9 +218,7 @@ static int pcf857x_irq_set_wake(struct irq_data *data, unsigned int on)
 	if (gpio->irq_parent) {
 		error = irq_set_irq_wake(gpio->irq_parent, on);
 		if (error) {
-			dev_dbg(&gpio->client->dev,
-				"irq %u doesn't support irq_set_wake\n",
-				gpio->irq_parent);
+			pr_err("[pcf]irq %u doesn't support irq_set_wake\n", gpio->irq_parent);
 			gpio->irq_parent = 0;
 		}
 	}
@@ -276,13 +275,16 @@ static int pcf857x_probe(struct i2c_client *client,
 	struct pcf857x			*gpio;
 	unsigned int			n_latch = 0;
 	int				status;
+	int 			d;
+
+	pr_err("[pcf] starting to probe pcf857x !!!\n");
 
 	if (IS_ENABLED(CONFIG_OF) && np)
 		of_property_read_u32(np, "lines-initial-states", &n_latch);
 	else if (pdata)
 		n_latch = pdata->n_latch;
 	else
-		dev_dbg(&client->dev, "no platform data\n");
+		pr_err("[pcf]no platform data\n");
 
 	/* Allocate, initialize, and register this gpio_chip. */
 	gpio = devm_kzalloc(&client->dev, sizeof(*gpio), GFP_KERNEL);
@@ -342,7 +344,7 @@ static int pcf857x_probe(struct i2c_client *client,
 			status = i2c_read_le16(client);
 
 	} else {
-		dev_dbg(&client->dev, "unsupported number of gpios\n");
+		pr_err("[pcf]unsupported number of gpios\n");
 		status = -EINVAL;
 	}
 
@@ -382,7 +384,7 @@ static int pcf857x_probe(struct i2c_client *client,
 					      0, handle_level_irq,
 					      IRQ_TYPE_NONE);
 		if (status) {
-			dev_err(&client->dev, "cannot add irqchip\n");
+			pr_err("[pcf]cannot add irqchip\n");
 			goto fail_irq;
 		}
 
@@ -406,10 +408,19 @@ static int pcf857x_probe(struct i2c_client *client,
 				gpio->chip.base, gpio->chip.ngpio,
 				pdata->context);
 		if (status < 0)
-			dev_warn(&client->dev, "setup --> %d\n", status);
+			pr_err("[pcf]setup --> %d\n", status);
+	}
+	
+	for (d=0;d<16;d++) {
+		if(d==12)
+			pr_err("[pcf] not setting value for P14 pin as it is power pin\n");
+		else {
+			pr_err("[pcf] setting value 0 for value of d%d\n", d);
+			pcf857x_output(&gpio->chip,d,0);
+		}
 	}
 
-	dev_info(&client->dev, "probed\n");
+	pr_err("[pcf]probed\n");
 
 	return 0;
 
@@ -417,7 +428,7 @@ fail_irq:
 	gpiochip_remove(&gpio->chip);
 
 fail:
-	dev_dbg(&client->dev, "probe error %d for '%s'\n", status,
+	pr_err("[pcf]probe error %d for '%s'\n", status,
 		client->name);
 
 	return status;
@@ -434,7 +445,7 @@ static int pcf857x_remove(struct i2c_client *client)
 				gpio->chip.base, gpio->chip.ngpio,
 				pdata->context);
 		if (status < 0) {
-			dev_err(&client->dev, "%s --> %d\n",
+			pr_err("[pcf]%s --> %d\n",
 					"teardown", status);
 			return status;
 		}

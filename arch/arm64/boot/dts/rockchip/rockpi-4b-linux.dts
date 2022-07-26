@@ -61,3 +61,22 @@
 &wireless_bluetooth {
 	status = "okay";
 };
+
+&spi1 {
+	status = "okay";
+
+	w25q128:w25q128-flash@0 {
+		status = "okay";
+		compatible = "winbond,w25q128", "jedec,spi-nor";
+		reg =<0>;
+		spi-max-frequency = <10000000>;
+	};
+
+	w25q64:w25q64-flash@1 {
+		status = "okay";
+		cs-gpio = <&gpio4 RK_PD6 GPIO_ACTIVE_HIGH>;
+		compatible = "winbond,w25q64dw" , "jedec,spi-nor";
+		reg =<1>;
+		spi-max-frequency = <10000000>;
+	};
+};
