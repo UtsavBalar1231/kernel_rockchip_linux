@@ -59,6 +59,7 @@ static const struct i2c_device_id pca953x_id[] = {
 	{ "pca9555", 16 | PCA953X_TYPE | PCA_INT, },
 	{ "pca9556", 8  | PCA953X_TYPE, },
 	{ "pca9557", 8  | PCA953X_TYPE, },
+	{ "pca9570", 4  | PCA957X_TYPE,},
 	{ "pca9574", 8  | PCA957X_TYPE | PCA_INT, },
 	{ "pca9575", 16 | PCA957X_TYPE | PCA_INT, },
 	{ "pca9698", 40 | PCA953X_TYPE, },
@@ -668,6 +669,7 @@ static int pca953x_probe(struct i2c_client *client,
 	int irq_base = 0;
 	int ret;
 	u32 invert = 0;
+	int d;
 
 	chip = devm_kzalloc(&client->dev,
 			sizeof(struct pca953x_chip), GFP_KERNEL);
@@ -731,6 +733,17 @@ static int pca953x_probe(struct i2c_client *client,
 	}
 
 	i2c_set_clientdata(client, chip);
+
+	for (d = 0; d < 4; d++) {
+		if (d == 0)
+			pr_err("[pca]not setting value for P%d as it is power pin\n", d);
+		else {
+			pr_err("[pca]setting value to 0 for P%d\n", d);
+			pca953x_gpio_set_value(&chip->gpio_chip,d,0);
+		}
+	}
+
+	pr_err("[pca]probed !!!!!!\n");
 	return 0;
 }
 
@@ -770,6 +783,7 @@ static const struct of_device_id pca953x_dt_ids[] = {
 	{ .compatible = "nxp,pca9574", },
 	{ .compatible = "nxp,pca9575", },
 	{ .compatible = "nxp,pca9698", },
+	{ .compatible = "nxp,pca9570", },
 
 	{ .compatible = "maxim,max7310", },
 	{ .compatible = "maxim,max7312", },

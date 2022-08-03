@@ -775,10 +775,18 @@
 &i2c7 {
 	status = "okay";
 
-	pcf8575: gpio@20{
+/*	pcf8575: gpio@20{
 		status = "okay";
 		compatible = "nxp,pcf8575";
 		reg = <0x20>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};*/
+
+	pca9570: gpio@24 {
+		status = "okay";
+		compatible = "nxp,pca9570";
+		reg = <0x24>;
 		gpio-controller;
 		#gpio-cells = <2>;
 	};
