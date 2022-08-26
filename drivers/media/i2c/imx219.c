@@ -49,7 +49,10 @@
 #define IMX219_NAME			"imx219"
 
 static const s64 link_freq_menu_items[] = {
-	456000000,
+	//900000000,
+	400000000,
+	150000000,
+	900000000
 };
 
 struct imx219_reg {
@@ -249,14 +252,14 @@ struct imx219 {
 
 static const struct imx219_mode supported_modes[] = {
 	{
-		.width = 1920,
-		.height = 1080,
+		.width =  640, //H
+		.height = 480, //V
 		.max_fps = {
 			.numerator = 10000,
-			.denominator = 300000,
+			.denominator = 600000,
 		},
-		.hts_def = 0x0d78 - IMX219_EXP_LINES_MARGIN,
-		.vts_def = 0x06E6,
+		.hts_def = 640+180,//+88+128+40,
+		.vts_def = 480+90,//+23+1+128,
 		.reg_list = imx219_init_tab_1920_1080_30fps,
 	},
 	{
@@ -277,53 +280,53 @@ static struct imx219 *to_imx219(const struct i2c_client *client)
 	return container_of(i2c_get_clientdata(client), struct imx219, subdev);
 }
 
-static int reg_write(struct i2c_client *client, const u16 addr, const u8 data)
-{
-	struct i2c_adapter *adap = client->adapter;
-	struct i2c_msg msg;
-	u8 tx[3];
-	int ret;
+// static int reg_write(struct i2c_client *client, const u16 addr, const u8 data)
+// {
+// 	struct i2c_adapter *adap = client->adapter;
+// 	struct i2c_msg msg;
+// 	u8 tx[3];
+// 	int ret;
 
-	msg.addr = client->addr;
-	msg.buf = tx;
-	msg.len = 3;
-	msg.flags = 0;
-	tx[0] = addr >> 8;
-	tx[1] = addr & 0xff;
-	tx[2] = data;
-	ret = i2c_transfer(adap, &msg, 1);
-	mdelay(2);
+// 	msg.addr = client->addr;
+// 	msg.buf = tx;
+// 	msg.len = 3;
+// 	msg.flags = 0;
+// 	tx[0] = addr >> 8;
+// 	tx[1] = addr & 0xff;
+// 	tx[2] = data;
+// 	ret = i2c_transfer(adap, &msg, 1);
+// 	mdelay(2);
 
-	return ret == 1 ? 0 : -EIO;
-}
+// 	return ret == 1 ? 0 : -EIO;
+//}
 
-static int reg_read(struct i2c_client *client, const u16 addr)
-{
-	u8 buf[2] = {addr >> 8, addr & 0xff};
-	int ret;
-	struct i2c_msg msgs[] = {
-		{
-			.addr  = client->addr,
-			.flags = 0,
-			.len   = 2,
-			.buf   = buf,
-		}, {
-			.addr  = client->addr,
-			.flags = I2C_M_RD,
-			.len   = 1,
-			.buf   = buf,
-		},
-	};
+// static int reg_read(struct i2c_client *client, const u16 addr)
+// {
+// 	u8 buf[2] = {addr >> 8, addr & 0xff};
+// 	int ret;
+// 	struct i2c_msg msgs[] = {
+// 		{
+// 			.addr  = client->addr,
+// 			.flags = 0,
+// 			.len   = 2,
+// 			.buf   = buf,
+// 		}, {
+// 			.addr  = client->addr,
+// 			.flags = I2C_M_RD,
+// 			.len   = 1,
+// 			.buf   = buf,
+// 		},
+// 	};
 
-	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
-	if (ret < 0) {
-		dev_warn(&client->dev, "Reading register %x from %x failed\n",
-			 addr, client->addr);
-		return ret;
-	}
+// 	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
+// 	if (ret < 0) {
+// 		dev_warn(&client->dev, "Reading register %x from %x failed\n",
+// 			 addr, client->addr);
+// 		return ret;
+// 	}
 
-	return buf[0];
-}
+// 	return buf[0];
+// }
 
 // static int reg_write_table(struct i2c_client *client,
 // 			   const struct imx219_reg table[])
@@ -541,8 +544,8 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct imx219 *priv =
 	    container_of(ctrl->handler, struct imx219, ctrl_handler);
-	struct i2c_client *client = v4l2_get_subdevdata(&priv->subdev);
-	u8 reg;
+	// struct i2c_client *client = v4l2_get_subdevdata(&priv->subdev);
+	//u8 reg;
 	int ret;
 	u16 gain = 256;
 	u16 a_gain = 256;
@@ -605,17 +608,17 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 		 * so the exposure & gain can reflect at the same frame
 		 */
 
-		ret = reg_write(client, 0x0157, priv->analogue_gain);
-		ret |= reg_write(client, 0x0158, priv->digital_gain >> 8);
-		ret |= reg_write(client, 0x0159, priv->digital_gain & 0xff);
+		// ret = reg_write(client, 0x0157, priv->analogue_gain);
+		// ret |= reg_write(client, 0x0158, priv->digital_gain >> 8);
+		// ret |= reg_write(client, 0x0159, priv->digital_gain & 0xff);
 
 		return ret;
 
 	case V4L2_CID_EXPOSURE:
 		priv->exposure_time = ctrl->val;
 
-		ret = reg_write(client, 0x015a, priv->exposure_time >> 8);
-		ret |= reg_write(client, 0x015b, priv->exposure_time & 0xff);
+		// ret = reg_write(client, 0x015a, priv->exposure_time >> 8);
+		// ret |= reg_write(client, 0x015b, priv->exposure_time & 0xff);
 		return ret;
 
 	case V4L2_CID_TEST_PATTERN:
@@ -626,16 +629,16 @@ static int imx219_s_ctrl(struct v4l2_ctrl *ctrl)
 			ctrl->val = priv->cur_mode->vts_def;
 		if ((ctrl->val - IMX219_EXP_LINES_MARGIN) != priv->cur_vts)
 			priv->cur_vts = ctrl->val - IMX219_EXP_LINES_MARGIN;
-		ret = reg_write(client, 0x0160, ((priv->cur_vts >> 8) & 0xff));
-		ret |= reg_write(client, 0x0161, (priv->cur_vts & 0xff));
+		// ret = reg_write(client, 0x0160, ((priv->cur_vts >> 8) & 0xff));
+		// ret |= reg_write(client, 0x0161, (priv->cur_vts & 0xff));
 		return ret;
 
 	default:
 		return -EINVAL;
 	}
 	/* If enabled, apply settings immediately */
-	reg = reg_read(client, 0x0100);
-	if ((reg & 0x1f) == 0x01)
+//	reg = reg_read(client, 0x0100);
+//	if ((reg & 0x1f) == 0x01)
 		imx219_s_stream(&priv->subdev, 1);
 
 	return 0;
@@ -655,7 +658,7 @@ static int imx219_enum_mbus_code(struct v4l2_subdev *sd,
 static int imx219_get_reso_dist(const struct imx219_mode *mode,
 				struct v4l2_mbus_framefmt *framefmt)
 {
-	return abs(mode->width - framefmt->width) +
+	return abs(mode->width - framefmt->width) + 
 	       abs(mode->height - framefmt->height);
 }
 
@@ -693,7 +696,7 @@ static int imx219_set_fmt(struct v4l2_subdev *sd,
 		return 0;
 
 	mode = imx219_find_best_fit(fmt);
-	fmt->format.code = MEDIA_BUS_FMT_SRGGB10_1X10;
+	fmt->format.code = MEDIA_BUS_FMT_RGB888_1X24;
 	fmt->format.width = mode->width;
 	fmt->format.height = mode->height;
 	fmt->format.field = V4L2_FIELD_NONE;
@@ -707,7 +710,9 @@ static int imx219_set_fmt(struct v4l2_subdev *sd,
 					1, v_blank);
 	fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
 		mode->max_fps.numerator);
-	pixel_rate = mode->vts_def * mode->hts_def * fps;
+	pixel_rate =mode->vts_def * mode->hts_def * fps;
+
+	// printk()
 	__v4l2_ctrl_modify_range(priv->pixel_rate, pixel_rate,
 					pixel_rate, 1, pixel_rate);
 
@@ -737,7 +742,7 @@ static int imx219_get_fmt(struct v4l2_subdev *sd,
 
 	fmt->format.width = mode->width;
 	fmt->format.height = mode->height;
-	fmt->format.code = MEDIA_BUS_FMT_SRGGB10_1X10;
+	fmt->format.code = MEDIA_BUS_FMT_RGB888_1X24;
 	fmt->format.field = V4L2_FIELD_NONE;
 
 	return 0;
@@ -948,29 +953,29 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 	s64 pixel_rate, h_blank, v_blank;
 	int ret;
 	u32 fps = 0;
-
-	v4l2_ctrl_handler_init(&priv->ctrl_handler, 5);
+ 
+	v4l2_ctrl_handler_init(&priv->ctrl_handler, 7);
 	// v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
 	// 		  V4L2_CID_HFLIP, 0, 1, 1, 0);
 	// v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
 	// 		  V4L2_CID_VFLIP, 0, 1, 1, 0);
 
 	/* exposure */
-	// v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
-	// 		  V4L2_CID_ANALOGUE_GAIN,
-	// 		  IMX219_ANALOGUE_GAIN_MIN,
-	// 		  IMX219_ANALOGUE_GAIN_MAX,
-	// 		  1, IMX219_ANALOGUE_GAIN_DEFAULT);
-	// v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
-	// 		  V4L2_CID_GAIN,
-	// 		  IMX219_DIGITAL_GAIN_MIN,
-	// 		  IMX219_DIGITAL_GAIN_MAX, 1,
-	// 		  IMX219_DIGITAL_GAIN_DEFAULT);
-	// v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
-	// 		  V4L2_CID_EXPOSURE,
-	// 		  IMX219_DIGITAL_EXPOSURE_MIN,
-	// 		  IMX219_DIGITAL_EXPOSURE_MAX, 1,
-	// 		  IMX219_DIGITAL_EXPOSURE_DEFAULT);
+	v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
+			  V4L2_CID_ANALOGUE_GAIN,
+			  IMX219_ANALOGUE_GAIN_MIN,
+			  IMX219_ANALOGUE_GAIN_MAX,
+			  1, IMX219_ANALOGUE_GAIN_DEFAULT);
+	v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
+			  V4L2_CID_GAIN,
+			  IMX219_DIGITAL_GAIN_MIN,
+			  IMX219_DIGITAL_GAIN_MAX, 1,
+			  IMX219_DIGITAL_GAIN_DEFAULT);
+	v4l2_ctrl_new_std(&priv->ctrl_handler, &imx219_ctrl_ops,
+			  V4L2_CID_EXPOSURE,
+			  IMX219_DIGITAL_EXPOSURE_MIN,
+			  IMX219_DIGITAL_EXPOSURE_MAX, 1,
+			  IMX219_DIGITAL_EXPOSURE_DEFAULT);
 
 	/* blank */
 	h_blank = mode->hts_def - mode->width;
@@ -980,15 +985,19 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 	v_blank = mode->vts_def - mode->height;
 	priv->vblank = v4l2_ctrl_new_std(&priv->ctrl_handler, NULL, V4L2_CID_VBLANK,
 			  v_blank, v_blank, 1, v_blank);
-	printk("[imx.c] h_blank : %lld | v_blank : %lld \n", h_blank, v_blank);
+	
 	/* freq */
 	v4l2_ctrl_new_int_menu(&priv->ctrl_handler, NULL, V4L2_CID_LINK_FREQ,
 			       0, 0, link_freq_menu_items);
 	fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
 		mode->max_fps.numerator);
 	pixel_rate = mode->vts_def * mode->hts_def * fps;
-	printk("[imx.c]pixel rate before %lld\n",pixel_rate);
-	//pixel_rate = 62208000;
+	printk("[imx.c] pixel rate %lld\n",pixel_rate);
+	printk("[imx.c] FPS Rate %d",fps);
+	printk("[imx.c] h_blank : %lld \n v_blank : %lld \n", h_blank, v_blank);
+	printk("[imx.c] hts_def : %d \n vts_def : %d",mode->hts_def,mode->vts_def);
+	printk("[imx.c] width : %d \n Height : %d",mode->width,mode->height);
+	//pixel_rate = 23100000;//1620000000; //160000000; //62208000;
 	priv->pixel_rate = v4l2_ctrl_new_std(&priv->ctrl_handler, NULL, V4L2_CID_PIXEL_RATE,
 			  0, pixel_rate, 1, pixel_rate);
 	// v4l2_ctrl_new_std_menu_items(&priv->ctrl_handler, &imx219_ctrl_ops,
@@ -1007,7 +1016,7 @@ static int imx219_ctrls_init(struct v4l2_subdev *sd)
 	if (ret < 0) {
 		printk("[imx.c]Error %d setting default controls\n",
 			ret);
-		goto error;
+		goto error; 
 	}
 
 	return 0;
@@ -1075,8 +1084,8 @@ static int imx219_probe(struct i2c_client *client,
 	priv->cur_mode = &supported_modes[0];
 	priv->cfg_num = ARRAY_SIZE(supported_modes);
 
-	priv->crop_rect.left = 680;
-	priv->crop_rect.top = 692;
+	priv->crop_rect.left = 80;
+	priv->crop_rect.top = 80;
 	priv->crop_rect.width = priv->cur_mode->width;
 	priv->crop_rect.height = priv->cur_mode->height;
 
@@ -1084,7 +1093,7 @@ static int imx219_probe(struct i2c_client *client,
 	printk("[##]subdev initialized\n");
 	 ret = imx219_ctrls_init(&priv->subdev);
 	 if (ret < 0)printk("[##]error over here\n");
-	// 	return ret;
+	// 	return ret;zXCV BVFGB NBHJMBN
 	// ret = imx219_video_probe(client);
 	// if (ret < 0)
 	// 	return ret;
