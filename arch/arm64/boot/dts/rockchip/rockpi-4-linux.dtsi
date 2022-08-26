@@ -587,6 +587,56 @@
 			};
 		};
 	};
+
+	mp5416: pmic@69 {
+		compatible = "mps,mp5416";
+		reg = <0x69>;
+
+		regulators {
+			/* vdd_0p95: DRAM/GPU/VPU */
+			buck1 {
+				regulator-name = "buck1";
+				regulator-min-microvolt = <1000000>;
+				regulator-max-microvolt = <1500000>;
+				regulator-min-microamp  = <3800000>;
+				regulator-max-microamp  = <6800000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			/* vdd_soc */
+			buck2 {
+				regulator-name = "buck2";
+				regulator-min-microvolt = <2000000>;
+				regulator-max-microvolt = <3000000>;
+				regulator-min-microamp  = <2200000>;
+				regulator-max-microamp  = <5200000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			/* vdd_arm */
+			buck3_reg: buck3 {
+				regulator-name = "buck3";
+				regulator-min-microvolt = <1000000>;
+				regulator-max-microvolt = <2000000>;
+				regulator-min-microamp  = <3800000>;
+				regulator-max-microamp  = <6800000>;
+				regulator-always-on;
+			};
+
+			/* vdd_1p8 */
+			buck4 {
+				regulator-name = "buck4";
+				regulator-min-microvolt = <3000000>;
+				regulator-max-microvolt = <3600000>;
+				regulator-min-microamp  = <2200000>;
+				regulator-max-microamp  = <5200000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+		};
+	};
 };
 
 &i2c1 {

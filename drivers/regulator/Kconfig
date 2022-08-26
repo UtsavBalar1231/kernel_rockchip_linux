@@ -840,5 +840,15 @@ config REGULATOR_XZ3216
 	help
 	  Support the voltage and current regulators of the XZ321X series of DCDC devices.
 
+config REGULATOR_MP5416
+	tristate "Monolithic MP5416 PMIC"
+	depends on I2C && OF
+	select REGMAP_I2C
+	help
+	  Say y here to support the MP5416 PMIC. This will enable supports
+	  the software controllable 4 buck and 4 LDO regulators.
+	  Say M here if you want to include support for the regulator as a
+	  module.
+
 endif
 
