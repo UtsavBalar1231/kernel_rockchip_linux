@@ -680,51 +680,14 @@
 &i2c4 {
 	status = "okay";
 
-	fusb302@22 {
-		compatible = "fcs,fusb302";
+	fusb0: fusb30x@22 {
+		compatible = "fairchild,fusb302";
 		reg = <0x22>;
-		interrupt-parent = <&gpio1>;
-		interrupts = <RK_PA2 IRQ_TYPE_LEVEL_LOW>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&chg_cc_int_l>;
-		vbus-supply = <&vbus_typec>;
-
-		typec_con: connector {
-			compatible = "usb-c-connector";
-			data-role = "host";
-			label = "USB-C";
-			op-sink-microwatt = <1000000>;
-			power-role = "dual";
-			sink-pdos =
-				<PDO_FIXED(5000, 2500, PDO_FIXED_USB_COMM)>;
-			source-pdos =
-				<PDO_FIXED(5000, 1400, PDO_FIXED_USB_COMM)>;
-			try-power-role = "sink";
-
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				port@0 {
-					reg = <0>;
-					typec_hs: endpoint {
-						remote-endpoint = <&u2phy0_typec_hs>;
-					};
-				};
-				port@1 {
-					reg = <1>;
-					typec_ss: endpoint {
-						remote-endpoint = <&tcphy0_typec_ss>;
-					};
-				};
-				port@2 {
-					reg = <2>;
-					typec_dp: endpoint {
-						remote-endpoint = <&tcphy0_typec_dp>;
-					};
-				};
-			};
-		};
+		pinctrl-0 = <&fusb0_int>;
+		//vbus-5v-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_LOW>;
+		int-n-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+		status = "okay";
 	};
 
 	camera1: camera-module@10 {
@@ -751,7 +714,7 @@
 	};
 
 	camera2: camera-module@36 {
-		status = "disabled";
+		status = "okay";
 		compatible = "ovti,ov5647";
 		reg = <0x36>;
 
@@ -761,7 +724,7 @@
 
 		port {
 			ucam_out1: endpoint {
-				remote-endpoint = <&mipi_in_ucam0>;
+				remote-endpoint = <&mipi_in_ucam1>;
 				data-lanes = <1 2>;
 			};
 		};
@@ -834,23 +797,8 @@
 };
 
 &tcphy0 {
+	extcon = <&fusb0>;
 	status = "okay";
-};
-
-&tcphy0_dp {
-	port {
-		tcphy0_typec_dp: endpoint {
-			remote-endpoint = <&typec_dp>;
-		};
-	};
-};
-
-&tcphy0_usb3 {
-	port {
-		tcphy0_typec_ss: endpoint {
-			remote-endpoint = <&typec_ss>;
-		};
-	};
 };
 
 &tcphy1 {
@@ -868,24 +816,18 @@
 
 &u2phy0 {
 	status = "okay";
+	extcon = <&fusb0>;
 	enable-active-high;
 	/* otg-vbus-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;*/
 	gpio = <&gpio1 3 GPIO_ACTIVE_HIGH>;
 
 	u2phy0_otg: otg-port {
-		phy-supply = <&vbus_typec>;
 		status = "okay";
 	};
 
 	u2phy0_host: host-port {
 		phy-supply = <&vcc5v0_host>;
 		status = "okay";
-	};
-
-	port {
-		u2phy0_typec_hs: endpoint {
-			remote-endpoint = <&typec_hs>;
-		};
 	};
 };
 
@@ -933,7 +875,7 @@
 };
 
 &usbdrd3_0 {
-	extcon = <&u2phy0>;
+	extcon = <&fusb0>;
 	status = "okay";
 };
 
@@ -1160,8 +1102,8 @@
 		};
 	};
 
-	fusb302 {
-		chg_cc_int_l: chg-cc-int-l {
+	fusb30x {
+		fusb0_int: fusb0_int {
 			rockchip,pins = <1 2 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
@@ -1253,6 +1195,12 @@
 			mipi_in_ucam0: endpoint@1 {
 				reg = <1>;
 				remote-endpoint = <&ucam_out0>;
+				data-lanes = <1 2>;
+			};
+
+			mipi_in_ucam1: endpoint@2 {
+				reg = <2>;
+				remote-endpoint = <&ucam_out1>;
 				data-lanes = <1 2>;
 			};
 		};
