@@ -12,6 +12,7 @@
 #include "rk3399.dtsi"
 #include "rk3399-linux.dtsi"
 #include "rk3399-opp.dtsi"
+#include "rk3399-vaaman-mipi-csi.dtsi"
 
 / {
 	model = "VICHARAK VAAMAN VO.3";
