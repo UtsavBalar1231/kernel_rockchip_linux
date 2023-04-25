@@ -1311,6 +1311,14 @@ config VIDEO_NVP6324
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called jaguar1_drv.
+
+config VIDEO_FPGA_READ
+	tristate "FPGA read support"
+	depends on I2C && VIDEO_V4L2 && MEDIA_CAMERA_SUPPORT
+	default y
+	select V4L2_FWNODE
+	help
+	  This driver supports FPGA of efinix
 endmenu
 
 menu "Sensors used on soc_camera driver"
