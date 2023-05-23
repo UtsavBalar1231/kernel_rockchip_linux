@@ -856,6 +856,11 @@ properties:
           - const: rockchip,rk3399-sapphire-excavator
           - const: rockchip,rk3399
 
+      - description: Vicharak RK3399 Vaaman Board
+        items:
+          - const: vicharak,rk3399-vaaman
+          - const: rockchip,rk3399
+
       - description: Rockchip RK3588 Evaluation board
         items:
           - const: rockchip,rk3588-evb1-v10
