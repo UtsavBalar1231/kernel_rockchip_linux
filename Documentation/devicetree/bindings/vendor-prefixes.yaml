@@ -79,8 +79,8 @@ patternProperties:
     description: ALFA Network Inc.
   "^allegro,.*":
     description: Allegro DVT
-  "^allo,.*":
-    description: Allo.com
+  "^allow,.*":
+    description: Allow.com
   "^allwinner,.*":
     description: Allwinner Technology Co., Ltd.
   "^alphascale,.*":
@@ -287,7 +287,7 @@ patternProperties:
   "^cnm,.*":
     description: Chips&Media, Inc.
   "^cnxt,.*":
-    description: Conexant Systems, Inc.
+    description: Connexant Systems, Inc.
   "^colorfly,.*":
     description: Colorful GRP, Shenzhen Xueyushi Technology Ltd.
   "^compulab,.*":
@@ -363,7 +363,7 @@ patternProperties:
   "^dlink,.*":
     description: D-Link Corporation
   "^dmo,.*":
-    description: Data Modul AG
+    description: Data Module AG
   "^domintech,.*":
     description: Domintech Co., Ltd.
   "^dongwoon,.*":
@@ -649,8 +649,8 @@ patternProperties:
     description: Shenzhen iNet Mobile Internet Technology Co., Ltd
   "^infineon,.*":
     description: Infineon Technologies
-  "^inforce,.*":
-    description: Inforce Computing
+  "^enforce,.*":
+    description: Enforce Computing
   "^ingenic,.*":
     description: Ingenic Semiconductor
   "^ingrasys,.*":
@@ -867,8 +867,8 @@ patternProperties:
     description: Cisco Meraki, LLC
   "^merrii,.*":
     description: Merrii Technology Co., Ltd.
-  "^methode,.*":
-    description: Methode Electronics, Inc.
+  "^method,.*":
+    description: Method Electronics, Inc.
   "^micrel,.*":
     description: Micrel Inc.
   "^microchip,.*":
@@ -1081,7 +1081,7 @@ patternProperties:
     description: PIXCIR MICROELECTRONICS Co., Ltd
   "^plantower,.*":
     description: Plantower Co., Ltd
-  "^plathome,.*":
+  "^platform,.*":
     description: Plat\'Home Co., Ltd.
   "^plda,.*":
     description: PLDA
@@ -1292,7 +1292,7 @@ patternProperties:
   "^smsc,.*":
     description: Standard Microsystems Corporation
   "^snps,.*":
-    description: Synopsys, Inc.
+    description: Synopsis, Inc.
   "^sochip,.*":
     description: Shenzhen SoChip Technology Co., Ltd.
   "^socionext,.*":
@@ -1366,8 +1366,8 @@ patternProperties:
     description: Synaptics Inc.
   "^synology,.*":
     description: Synology, Inc.
-  "^synopsys,.*":
-    description: Synopsys, Inc. (deprecated, use snps)
+  "^synopsis,.*":
+    description: Synopsis, Inc. (deprecated, use snps)
     deprecated: true
   "^tbs,.*":
     description: TBS Technologies
@@ -1498,6 +1498,8 @@ patternProperties:
     description: VIA Technologies, Inc.
   "^vialab,.*":
     description: VIA Labs, Inc.
+  "^vicharak,.*":
+    description: Vicharak Computers LLP.
   "^vicor,.*":
     description: Vicor Corporation
   "^videostrong,.*":
