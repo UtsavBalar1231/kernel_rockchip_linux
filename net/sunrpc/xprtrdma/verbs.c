@@ -855,7 +855,7 @@ retry:
 			if (rc)
 				pr_warn("%s: rpcrdma_ep_post_extra_recv: %i\n",
 					__func__, rc);
-				rc = 0;
+			rc = 0;
 		}
 	}
 
