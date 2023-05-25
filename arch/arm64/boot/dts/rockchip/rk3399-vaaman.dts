@@ -630,6 +630,16 @@
 };
 // }}} End of PWM 2
 
+// Rockchip PVTM: {{{
+&pvtm {
+	status = "okay";
+};
+
+&pmu_pvtm {
+	status = "okay";
+};
+// }}} End of Rockchip PVTM
+
 // SAR ADC: {{{
 &saradc {
 	status = "okay";
