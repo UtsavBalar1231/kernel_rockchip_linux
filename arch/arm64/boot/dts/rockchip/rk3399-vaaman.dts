@@ -228,6 +228,28 @@
 		vin-supply = <&vcc12v_dcin>;
 	};
 	// }}} End of Voltage regulators
+
+	// WIFI (RTL8822CS): {{{
+	wireless_wlan: wireless-wlan {
+		compatible = "wlan-platdata";
+		wifi_chip_type = "rtl8822cs";
+		rockchip,grf = <&grf>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_host_wake_l>;
+		WIFI,host_wake_irq = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk808 1>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_reg_on_h>;
+		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
+		status = "okay";
+	};
+	// End of WIFI (RTL8822CS) }}}
 };
 
 // CPUs voltage supply: {{{
@@ -846,6 +868,28 @@
 	};
 	// }}} End of PMIC
 
+	// SDIO: {{{
+	sdio0 {
+		sdio0_bus4: sdio0-bus4 {
+			rockchip,pins =
+				<2 RK_PC4 1 &pcfg_pull_up_20ma>,
+				<2 RK_PC5 1 &pcfg_pull_up_20ma>,
+				<2 RK_PC6 1 &pcfg_pull_up_20ma>,
+				<2 RK_PC7 1 &pcfg_pull_up_20ma>;
+		};
+
+		sdio0_cmd: sdio0-cmd {
+			rockchip,pins =
+				<2 RK_PD0 1 &pcfg_pull_up_20ma>;
+		};
+
+		sdio0_clk: sdio0-clk {
+			rockchip,pins =
+				<2 RK_PD1 1 &pcfg_pull_none_20ma>;
+		};
+	};
+	// End of SDIO }}}
+
 	// USB2: {{{
 	usb2 {
 		vcc5v0_host_en: vcc5v0-host-en {
@@ -862,6 +906,22 @@
 		};
 	};
 	// End of USB C }}}
+
+	// Wireless: {{{
+	wireless-wlan {
+		wifi_host_wake_l: wifi-host-wake-l {
+			rockchip,pins =
+				<0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	sdio-pwrseq {
+		wifi_reg_on_h: wifi-reg-on-h {
+			rockchip,pins =
+				<0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	// End of Wireless }}}
 };
 // }}} End of Pinctrl
 
@@ -946,7 +1006,7 @@
 };
 // }}} End of SAR ADC
 
-// SD(MMC/HCI): {{{
+// SD(MMC/HCI/IO): {{{
 &sdmmc {
 	clock-frequency = <150000000>;
 	clock-freq-min-max = <100000 150000000>;
@@ -977,7 +1037,24 @@
 &emmc_phy {
 	status = "okay";
 };
-// }}} End of SD(MMC/HCI)
+
+&sdio0 {
+	clock-frequency = <150000000>;
+	clock-freq-min-max = <200000 150000000>;
+	supports-sdio;
+	bus-width = <4>;
+	disable-wp;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	num-slots = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
+	status = "okay";
+};
+// }}} End of SD(MMC/HCI/IO)
 
 // SPDIF: {{{
 &spdif {
