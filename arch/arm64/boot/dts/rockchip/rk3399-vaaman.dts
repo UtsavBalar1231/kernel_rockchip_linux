@@ -31,6 +31,22 @@
 	};
 	// End of SRAM }}}
 
+	// Bluetooth (RTL8822CS): {{{
+	wireless_bluetooth: wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+		clocks = <&rk808 1>;
+		clock-names = "ext_clock";
+		uart_rts_gpios = <&gpio2 RK_PC3 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "rts_gpio";
+		pinctrl-0 = <&uart0_rts>;
+		pinctrl-1 = <&uart0_gpios>;
+		BT,wake_host_irq = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+		BT,wake_gpio     = <&gpio2 RK_PD3 GPIO_ACTIVE_HIGH>;
+		BT,reset_gpio    = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+	// End of Bluetooth }}}
+
 	// DP Audio: {{{
 	dp_sound: dp-sound {
 		status = "okay";
@@ -908,6 +924,13 @@
 	// End of USB C }}}
 
 	// Wireless: {{{
+	wireless-bluetooth {
+		uart0_gpios: uart0-gpios {
+			rockchip,pins =
+				<2 RK_PC3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	wireless-wlan {
 		wifi_host_wake_l: wifi-host-wake-l {
 			rockchip,pins =
@@ -1076,6 +1099,14 @@
 	status = "okay";
 };
 // }}} End of Thermal Sensor
+
+// UART0: {{{
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_xfer &uart0_cts>;
+	status = "okay";
+};
+// }}} End of UART0
 
 // USB: {{{
 &tcphy0 {
