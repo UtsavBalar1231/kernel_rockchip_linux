@@ -1105,6 +1105,21 @@
 };
 // }}} End of SPDIF
 
+// SPI: {{{
+&spi1 {
+	status = "okay";
+
+	w25q128@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0>;
+		compatible = "winbond,w25q128", "jedec,spi-nor";
+		spi-max-frequency = <10000000>;
+		status = "okay";
+	};
+};
+// End of SPI }}}
+
 // Thermal Sensor: {{{
 &tsadc {
 	/* tshut mode 0:CRU 1:GPIO */
