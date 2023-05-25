@@ -31,6 +31,15 @@
 	};
 	// End of SRAM }}}
 
+	// DP Audio: {{{
+	dp_sound: dp-sound {
+		status = "okay";
+		compatible = "rockchip,cdndp-sound";
+		rockchip,cpu = <&spdif>;
+		rockchip,codec = <&cdn_dp 1>;
+	};
+	// End of DP Audio }}}
+
 	// Ethernet Clock: {{{
 	clkin_gmac: external-gmac-clock {
 		compatible = "fixed-clock";
@@ -113,6 +122,28 @@
 		};
 	};
 	// End of Leds }}}
+
+	// SPDI/F: {{{
+	spdif_sound: spdif-sound {
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "ROCKCHIP,SPDIF";
+
+		simple-audio-card,cpu {
+			sound-dai = <&spdif>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&spdif_out>;
+		};
+	};
+
+	spdif_out: spdif-out {
+		status = "okay";
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+	// End of SPDI/F }}}
 
 	// Voltage regulators: {{{
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -306,6 +337,22 @@
 	rockchip,force-iram;
 };
 // }}} End of DMAC
+
+// DP: {{{
+&cdn_dp {
+	status = "okay";
+	extcon = <&usbc0>;
+	phys = <&tcphy0_dp>;
+};
+
+&dp_in_vopb {
+	status = "disabled";
+};
+
+&dp_in_vopl {
+	status = "okay";
+};
+// }}} End of DP
 
 // Ethernet: {{{
 &gmac {
@@ -617,6 +664,25 @@
 };
 // }}} End of I2C1
 
+// I2C 4: {{{
+&i2c4 {
+	i2c-scl-rising-time-ns = <160>;
+	i2c-scl-falling-time-ns = <30>;
+	clock-frequency = <400000>;
+	status = "okay";
+
+	usbc0: fusb302@22 {
+		compatible = "fairchild,fusb302";
+		reg = <0x22>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc0_int>;
+		int-n-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+		vbus-5v-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+// End of I2C 4 }}}
+
 // I2S0 (ES8316): {{{
 &i2s0 {
 	rockchip,i2s-broken-burst-len;
@@ -751,6 +817,15 @@
 		};
 	};
 	// }}} End of USB2
+
+	// USB C: {{{
+	usb-typec {
+		usbc0_int: usbc0-int {
+			rockchip,pins =
+				<1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// End of USB C }}}
 };
 // }}} End of Pinctrl
 
@@ -810,6 +885,16 @@
 };
 // }}} End of SD(MMC/HCI)
 
+// SPDIF: {{{
+&spdif {
+	pinctrl-0 = <&spdif_bus>;
+	i2c-scl-rising-time-ns = <450>;
+	i2c-scl-falling-time-ns = <15>;
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+// }}} End of SPDIF
+
 // Thermal Sensor: {{{
 &tsadc {
 	/* tshut mode 0:CRU 1:GPIO */
@@ -823,6 +908,7 @@
 
 // USB: {{{
 &tcphy0 {
+	extcon = <&usbc0>;
 	status = "okay";
 };
 
@@ -831,7 +917,7 @@
 };
 
 &tcphy0_dp {
-	status = "disabled";
+	status = "okay";
 };
 
 &tcphy0_usb3 {
@@ -839,6 +925,7 @@
 };
 
 &u2phy0 {
+	extcon = <&usbc0>;
 	status = "okay";
 
 	u2phy0_otg: otg-port {
@@ -881,6 +968,7 @@
 };
 
 &usbdrd3_0 {
+	extcon = <&usbc0>;
 	status = "okay";
 };
 
