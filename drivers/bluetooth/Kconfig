@@ -2,6 +2,21 @@
 menu "Bluetooth device drivers"
 	depends on BT
 
+config RTKBT_UART
+	tristate "Realtek Bluetooth UART driver"
+	default n
+	depends on TTY
+	depends on BT_HCIUART_H4
+	depends on BT_HCIUART_3WIRE
+	depends on BT_HCIUART_LL
+	help
+	  Realtek Bluetooth UART driver
+	  This driver supports various realtek bluetooth chipsets
+	  with uart interfaces.
+
+	  Say Y here to compile support for Realtek Bluetooth UART driver into the
+	  kernel or say M to compile as a module.
+
 config BT_INTEL
 	tristate
 	select REGMAP
