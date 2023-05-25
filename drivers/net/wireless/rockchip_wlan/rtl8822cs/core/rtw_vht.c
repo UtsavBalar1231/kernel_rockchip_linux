@@ -967,7 +967,7 @@ u32	rtw_build_vht_cap_ie(_adapter *padapter, u8 *pbuf)
 	/* B30 B31 Extended NSS BW Support */
 	SET_VHT_CAPABILITY_ELE_EXT_NSS_BW(pcap, pvhtpriv->ext_nss_bw);
 
-	/*  
+	/*
 	* Supported VHT-MCS and NSS Set : 8 bytes
 	*/
 	pcap_mcs = GET_VHT_CAPABILITY_ELE_RX_MCS(pcap);
@@ -1266,15 +1266,13 @@ void rtw_reattach_vht_ies(_adapter *padapter, WLAN_BSSID_EX *pnetwork)
 
 	RTW_INFO(FUNC_ADPT_FMT"\n", FUNC_ADPT_ARG(padapter));
 
-	if (pnetwork->IEs != NULL) {
-		vht_op_ie = rtw_set_ie(vht_cap_ie, EID_VHTCapability, VHT_CAP_IE_LEN,
-			pvhtpriv->vht_cap_ie_backup, &(pnetwork->IELength));
+	vht_op_ie = rtw_set_ie(vht_cap_ie, EID_VHTCapability, VHT_CAP_IE_LEN,
+		pvhtpriv->vht_cap_ie_backup, &(pnetwork->IELength));
 
-		rtw_set_ie(vht_op_ie, EID_VHTOperation, VHT_OP_IE_LEN,
-			pvhtpriv->vht_op_ie_backup, &(pnetwork->IELength));
+	rtw_set_ie(vht_op_ie, EID_VHTOperation, VHT_OP_IE_LEN,
+		pvhtpriv->vht_op_ie_backup, &(pnetwork->IELength));
 
-		rtw_set_vht_ext_cap(padapter, pnetwork);
-	}
+	rtw_set_vht_ext_cap(padapter, pnetwork);
 
 	pmlmepriv->vhtpriv.vht_option = _TRUE;
 }
