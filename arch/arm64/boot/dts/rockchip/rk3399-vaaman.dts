@@ -40,6 +40,31 @@
 	};
 	// End of Ethernet Clock }}}
 
+	// Leds: {{{
+	gpio_leds: gpio-leds {
+		compatible = "gpio-leds";
+		status = "okay";
+		pinctrl-names = "default";
+		pinctrl-0 = <&user_led_rk_1_gpio &user_led_rk_2_gpio>;
+
+		user-led-rk-1 {
+			label = "power";
+			gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspend;
+			linux,default-trigger = "default-on";
+		};
+
+		user-led-rk-2 {
+			label = "status";
+			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspend;
+			linux,default-trigger = "heartbeat";
+		};
+	};
+	// End of Leds }}}
+
 	// Voltage regulators: {{{
 	vcc12v_dcin: vcc12v-dcin-regulator {
 		compatible = "regulator-fixed";
@@ -554,6 +579,20 @@
 		};
 	};
 	// }}} End of Ethernet
+
+	// Leds: {{{
+	leds {
+		user_led_rk_1_gpio: user-led-rk-1-gpio {
+			rockchip,pins =
+				<3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		user_led_rk_2_gpio: user-led-rk-2-gpio {
+			rockchip,pins =
+				<3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	// End of Leds }}}
 
 	// PMIC: {{{
 	pmic {
