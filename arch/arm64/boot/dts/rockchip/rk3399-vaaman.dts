@@ -913,6 +913,32 @@
 };
 // End of Rockchip Suspend }}}
 
+// Rockchip Video: {{{
+&vpu {
+	status = "okay";
+};
+
+&vpu_mmu {
+	status = "okay";
+};
+
+&rkvdec {
+	status = "okay";
+};
+
+&vdec_mmu {
+	status = "okay";
+};
+
+&iep {
+	status = "okay";
+};
+
+&iep_mmu {
+	status = "okay";
+};
+// }}} End of Rockchip Video
+
 // SAR ADC: {{{
 &saradc {
 	status = "okay";
