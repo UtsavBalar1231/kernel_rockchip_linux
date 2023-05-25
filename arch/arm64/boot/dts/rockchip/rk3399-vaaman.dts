@@ -23,6 +23,13 @@
 		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 swiotlb=1 console=ttyFIQ0 coherent_pool=1m";
 	};
 
+	// SRAM (DDR4): {{{
+	iram: sram@ff8d0000 {
+		compatible = "mmio-sram";
+		reg = <0x0 0xff8d0000 0x0 0x20000>;
+	};
+	// End of SRAM }}}
+
 	// Ethernet Clock: {{{
 	clkin_gmac: external-gmac-clock {
 		compatible = "fixed-clock";
@@ -123,6 +130,13 @@
 	cpu-supply = <&vdd_cpu_l>;
 };
 // }}} End of CPUs voltage supply
+
+// DMAC: {{{
+&dmac_bus {
+	iram = <&iram>;
+	rockchip,force-iram;
+};
+// }}} End of DMAC
 
 // Ethernet: {{{
 &gmac {
