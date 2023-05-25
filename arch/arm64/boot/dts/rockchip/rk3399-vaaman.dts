@@ -66,6 +66,29 @@
 	};
 	// End of ES8316 }}}
 
+	// HDMI Audio: {{{
+	hdmi_sound: hdmi-sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "rockchip,hdmi";
+		status = "okay";
+
+		simple-audio-card,cpu {
+			sound-dai = <&i2s2>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&dw_hdmi_audio>;
+		};
+	};
+
+	dw_hdmi_audio: dw-hdmi-audio {
+		compatible = "rockchip,dw-hdmi-audio";
+		#sound-dai-cells = <0>;
+		status = "okay";
+	};
+	// }}} End of HDMI Audio
+
 	// Leds: {{{
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
@@ -271,6 +294,12 @@
 };
 // }}} End of Devfreq
 
+// Display subsystem: {{{
+&display_subsystem {
+	status = "okay";
+};
+// }}} End of Display subsystem
+
 // DMAC: {{{
 &dmac_bus {
 	iram = <&iram>;
@@ -296,6 +325,30 @@
 	status = "okay";
 };
 // }}} End of Ethernet
+
+// HDMI: {{{
+&hdmi {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&hdmi_i2c_xfer>, <&hdmi_cec>;
+	status = "okay";
+};
+
+&hdmi_in_vopl {
+	status = "disabled";
+};
+
+&hdmi_in_vopb {
+	status = "okay";
+};
+
+&route_hdmi {
+	status = "okay";
+	connect = <&vopb_out_hdmi>;
+};
+// }}} End of HDMI
 
 // MALI GPU: {{{
 &gpu {
@@ -574,6 +627,13 @@
 };
 // }}} End of I2S0
 
+// I2S2 (HDMI): {{{
+&i2s2 {
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+// }}} End of I2S2
+
 // IO Domains: {{{
 &io_domains {
 	/*
@@ -838,3 +898,25 @@
 	status = "okay";
 };
 // }}} End of USB
+
+// VOP: {{{
+&vopb {
+	assigned-clocks = <&cru DCLK_VOP0_DIV>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
+	status = "okay";
+};
+
+&vopb_mmu {
+	status = "okay";
+};
+
+&vopl {
+	assigned-clocks = <&cru DCLK_VOP1_DIV>;
+	assigned-clock-parents = <&cru PLL_VPLL>;
+	status = "okay";
+};
+
+&vopl_mmu {
+	status = "okay";
+};
+// }}} End of VOP
