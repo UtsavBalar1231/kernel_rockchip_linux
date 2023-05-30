@@ -4,6 +4,7 @@
  */
 
 /dts-v1/;
+#include <dt-bindings/leds/common.h>
 #include "rk3399.dtsi"
 #include "rk3399-opp.dtsi"
 
@@ -108,6 +109,28 @@
 		regulator-always-on;
 		regulator-boot-on;
 		vin-supply = <&vcc5v0_sys>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&user_led_rk_1 &user_led_rk_2>;
+
+		user-led-rk-1 {
+			function = LED_FUNCTION_POWER;
+			gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspended;
+			linux,default-trigger = "default-on";
+		};
+
+		user-led-rk-2 {
+			function = LED_FUNCTION_STATUS;
+			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspended;
+			linux,default-trigger = "heartbeat";
+		};
 	};
 };
 
@@ -440,6 +463,18 @@
 };
 
 &pinctrl {
+	leds {
+		user_led_rk_1: user-led-rk-1 {
+			rockchip,pins =
+				<3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		user_led_rk_2: user-led-rk-2 {
+			rockchip,pins =
+				<3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	pmic {
 		pmic_int_l: pmic-int-l {
 			rockchip,pins =
