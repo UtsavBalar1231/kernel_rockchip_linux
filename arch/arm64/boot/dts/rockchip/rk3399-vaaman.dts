@@ -209,6 +209,19 @@
 	status = "okay";
 };
 
+&hdmi {
+	avdd-0v9-supply = <&vcca0v9_hdmi>;
+	avdd-1v8-supply = <&vcca1v8_hdmi>;
+	ddc-i2c-bus = <&i2c3>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&hdmi_cec>;
+	status = "okay";
+};
+
+&hdmi_sound {
+	status = "okay";
+};
+
 &i2c0 {
 	clock-frequency = <400000>;
 	i2c-scl-rising-time-ns = <168>;
@@ -475,6 +488,12 @@
 	};
 };
 
+&i2c3 {
+	i2c-scl-rising-time-ns = <450>;
+	i2c-scl-falling-time-ns = <15>;
+	status = "okay";
+};
+
 &i2s0 {
 	pinctrl-0 = <&i2s0_2ch_bus>;
 	pinctrl-1 = <&i2s0_2ch_bus_bclk_off>;
@@ -489,6 +508,10 @@
 			remote-endpoint = <&es8316_p0_0>;
 		};
 	};
+};
+
+&i2s2 {
+	status = "okay";
 };
 
 &io_domains {
