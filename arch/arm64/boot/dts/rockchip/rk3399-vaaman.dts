@@ -5,6 +5,7 @@
 
 /dts-v1/;
 #include "rk3399.dtsi"
+#include "rk3399-opp.dtsi"
 
 / {
 	model = "Vicharak RK3399 VAAMAN VO.3";
@@ -24,6 +25,30 @@
 		clock-frequency = <125000000>;
 		clock-output-names = "clkin_gmac";
 		#clock-cells = <0>;
+	};
+
+	dmc_opp_table: opp-table3 {
+		compatible = "operating-points-v2";
+
+		opp-328000000 {
+			opp-hz = /bits/ 64 <328000000>;
+			opp-microvolt = <900000>;
+		};
+
+		opp-416000000 {
+			opp-hz = /bits/ 64 <416000000>;
+			opp-microvolt = <900000>;
+		};
+
+		opp-666000000 {
+			opp-hz = /bits/ 64 <666000000>;
+			opp-microvolt = <900000>;
+		};
+
+		opp-856000000 {
+			opp-hz = /bits/ 64 <856000000>;
+			opp-microvolt = <900000>;
+		};
 	};
 
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -74,6 +99,18 @@
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc5v0_sys>;
 	};
+
+	vdd_log: vdd-log-regulator {
+		compatible = "pwm-regulator";
+		pwms = <&pwm2 0 25000 1>;
+		pwm-supply = <&vcc5v0_sys>;
+		regulator-name = "vdd_log";
+		regulator-min-microvolt = <800000>;
+		regulator-max-microvolt = <1400000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc5v0_sys>;
+	};
 };
 
 &cpu_l0 {
@@ -102,6 +139,26 @@
 
 &emmc_phy {
 	status = "okay";
+};
+
+&dmc {
+	status = "disabled";
+	center-supply = <&vdd_log>;
+	operating-points-v2 = <&dmc_opp_table>;
+
+	rockchip,pd-idle-ns = <160>;
+	rockchip,sr-idle-ns = <10240>;
+	rockchip,sr-mc-gate-idle-ns = <40960>;
+	rockchip,srpd-lite-idle-ns = <61440>;
+	rockchip,standby-idle-ns = <81920>;
+
+	rockchip,ddr3_odt_dis_freq = <666000000>;
+	rockchip,lpddr3_odt_dis_freq = <666000000>;
+	rockchip,lpddr4_odt_dis_freq = <856000000>;
+
+	rockchip,sr-mc-gate-idle-dis-freq-hz = <1000000000>;
+	rockchip,srpd-lite-idle-dis-freq-hz = <0>;
+	rockchip,standby-idle-dis-freq-hz = <856000000>;
 };
 
 &gmac {
@@ -403,6 +460,10 @@
 				<4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+};
+
+&pwm2 {
+	status = "okay";
 };
 
 &sdhci {
