@@ -105,6 +105,27 @@
 	};
 	// End of ES8316 }}}
 
+	// GPIO Keys: {{{
+	gpio-keys {
+		compatible = "gpio-keys";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		autorepeat;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwrbtn>;
+
+		button@0 {
+			gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_POWER>;
+			label = "GPIO Key Power";
+			linux,input-type = <1>;
+			gpio-key,wakeup = <1>;
+			debounce-interval = <100>;
+		};
+	};
+	// End of GPIO Keys }}}
+
 	// HDMI Audio: {{{
 	hdmi_sound: hdmi-sound {
 		compatible = "simple-audio-card";
@@ -892,6 +913,15 @@
 		};
 	};
 	// }}} End of Ethernet
+
+	// GPIO Keys: {{{
+	buttons {
+		pwrbtn: pwrbtn {
+			rockchip,pins =
+				<0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// }}} End of GPIO Keys
 
 	// I2S0: {{{
 	i2s0 {
