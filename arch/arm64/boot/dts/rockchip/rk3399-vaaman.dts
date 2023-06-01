@@ -195,6 +195,18 @@
 	};
 };
 
+&cpu_alert0 {
+	temperature = <85000>;
+};
+
+&cpu_alert1 {
+	temperature = <95000>;
+};
+
+&cpu_crit {
+	temperature = <100000>;
+};
+
 &cpu_l0 {
 	cpu-supply = <&vdd_cpu_l>;
 };
