@@ -150,6 +150,23 @@
 		label = "Analog";
 		dais = <&i2s0_p0>;
 	};
+
+	sound-dit {
+		compatible = "audio-graph-card";
+		label = "SPDIF";
+		dais = <&spdif_p0>;
+	};
+
+	spdif-dit {
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+
+		port {
+			dit_p0_0: endpoint {
+				remote-endpoint = <&spdif_p0_0>;
+			};
+		};
+	};
 };
 
 &cpu_l0 {
@@ -522,6 +539,11 @@
 	};
 };
 
+&i2s1 {
+	rockchip,capture-channels = <2>;
+	rockchip,playback-channels = <2>;
+};
+
 &i2s2 {
 	status = "okay";
 };
@@ -616,6 +638,14 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc_clk &sdmmc_cd &sdmmc_cmd &sdmmc_bus4>;
 	status = "okay";
+};
+
+&spdif {
+	spdif_p0: port {
+		spdif_p0_0: endpoint {
+			remote-endpoint = <&dit_p0_0>;
+		};
+	};
 };
 
 &tcphy0 {
