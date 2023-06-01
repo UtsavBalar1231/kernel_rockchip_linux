@@ -15,6 +15,7 @@
 	aliases {
 		mmc0 = &sdmmc;
 		mmc1 = &sdhci;
+		mmc2 = &sdio0;
 	};
 
 	chosen {
@@ -143,6 +144,15 @@
 			retain-state-suspended;
 			linux,default-trigger = "heartbeat";
 		};
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk808 1>;
+		clock-names = "lpo";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h>;
+		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
 	};
 
 	sound: sound {
@@ -613,6 +623,13 @@
 				<4 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+
+	wifi {
+		wifi_enable_h: wifi-enable-h {
+			rockchip,pins =
+				<0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };
 
 &pwm2 {
@@ -626,6 +643,26 @@
 	mmc-hs400-enhanced-strobe;
 	non-removable;
 	status = "okay";
+};
+
+&sdio0 {
+	bus-width = <4>;
+	clock-frequency = <150000000>;
+	cap-sdio-irq;
+	cap-sd-highspeed;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
+	sd-uhs-sdr104;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	rtl8822cs: wifi@1 {
+		reg = <1>;
+	};
 };
 
 &sdmmc {
