@@ -4,6 +4,7 @@
  */
 
 /dts-v1/;
+#include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/leds/common.h>
 #include "rk3399.dtsi"
 #include "rk3399-opp.dtsi"
@@ -50,6 +51,21 @@
 		opp-856000000 {
 			opp-hz = /bits/ 64 <856000000>;
 			opp-microvolt = <900000>;
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		autorepeat;
+		pinctrl-0 = <&pwr_key_l>;
+		pinctrl-names = "default";
+
+		key-power {
+			gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_POWER>;
+			label = "Power On Key";
+			debounce-interval = <100>;
+			wakeup-source;
 		};
 	};
 
@@ -615,6 +631,13 @@
 		};
 	};
 
+	power-button {
+		pwr_key_l: pwr-key-l {
+			rockchip,pins =
+				<0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
 	usb2 {
 		vcc5v0_host_en: vcc5v0-host-en {
 			rockchip,pins =
@@ -632,6 +655,11 @@
 
 &pwm2 {
 	status = "okay";
+};
+
+&saradc {
+	status = "okay";
+	vref-supply = <&vcc_1v8>;
 };
 
 &sdhci {
