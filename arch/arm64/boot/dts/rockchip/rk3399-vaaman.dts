@@ -442,7 +442,7 @@
 };
 
 &dp_in_vopl {
-	status = "okay";
+	status = "disabled";
 };
 // }}} End of DP
 
@@ -466,7 +466,7 @@
 };
 
 &edp_in_vopl {
-	status = "disabled";
+	status = "okay";
 };
 
 &edp_in_vopb {
