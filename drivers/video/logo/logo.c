@@ -21,21 +21,6 @@ static bool nologo;
 module_param(nologo, bool, 0);
 MODULE_PARM_DESC(nologo, "Disables startup logo");
 
-/*
- * Logos are located in the initdata, and will be freed in kernel_init.
- * Use late_init to mark the logos as freed to prevent any further use.
- */
-
-static bool logos_freed;
-
-static int __init fb_logo_late_init(void)
-{
-	logos_freed = true;
-	return 0;
-}
-
-late_initcall(fb_logo_late_init);
-
 /* logo's are marked __initdata. Use __init_refok to tell
  * modpost that it is intended that this function uses data
  * marked __initdata.
@@ -44,7 +29,11 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 {
 	const struct linux_logo *logo = NULL;
 
-	if (nologo || logos_freed)
+	/*
+	 * Logos are located in the initdata, and will be freed in kernel_init.
+	 * Now instead of late_init use system_state to determine, if initdata is still useable.
+	 */
+	if (nologo || system_state != SYSTEM_BOOTING)
 		return NULL;
 
 	if (depth >= 1) {
@@ -57,7 +46,7 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		logo = &logo_superh_mono;
 #endif
 	}
-	
+
 	if (depth >= 4) {
 #ifdef CONFIG_LOGO_LINUX_VGA16
 		/* Generic Linux logo */
@@ -72,7 +61,7 @@ const struct linux_logo * __init_refok fb_find_logo(int depth)
 		logo = &logo_superh_vga16;
 #endif
 	}
-	
+
 	if (depth >= 8) {
 #ifdef CONFIG_LOGO_LINUX_CLUT224
 		/* Generic Linux logo */
