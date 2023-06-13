@@ -48,15 +48,6 @@
 	};
 	// End of Bluetooth }}}
 
-	// DP Audio: {{{
-	dp_sound: dp-sound {
-		status = "okay";
-		compatible = "rockchip,cdndp-sound";
-		rockchip,cpu = <&spdif>;
-		rockchip,codec = <&cdn_dp 1>;
-	};
-	// End of DP Audio }}}
-
 	// EDP Panel: {{{
 	edp_panel: edp-panel {
 		compatible = "simple-panel";
@@ -126,28 +117,14 @@
 	};
 	// End of GPIO Keys }}}
 
-	// HDMI Audio: {{{
-	hdmi_sound: hdmi-sound {
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,name = "rockchip,hdmi";
-		status = "okay";
-
-		simple-audio-card,cpu {
-			sound-dai = <&i2s2>;
-		};
-		simple-audio-card,codec {
-			sound-dai = <&dw_hdmi_audio>;
-		};
-	};
-
-	dw_hdmi_audio: dw-hdmi-audio {
-		compatible = "rockchip,dw-hdmi-audio";
-		#sound-dai-cells = <0>;
+	// HDMI/DP Audio: {{{
+	hdmi_dp_sound: hdmi-dp-sound {
+		compatible = "rockchip,rk3399-hdmi-dp";
+		rockchip,cpu = <&i2s2>;
+		rockchip,codec = <&hdmi>, <&cdn_dp>;
 		status = "okay";
 	};
-	// }}} End of HDMI Audio
+	// }}} End of HDMI/DP Audio
 
 	// Leds: {{{
 	gpio_leds: gpio-leds {
