@@ -6,6 +6,7 @@
 /dts-v1/;
 #include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/leds/common.h>
+#include <dt-bindings/usb/pd.h>
 #include "rk3399.dtsi"
 #include "rk3399-opp.dtsi"
 
@@ -561,6 +562,23 @@
 	status = "okay";
 };
 
+&i2c4 {
+	i2c-scl-rising-time-ns = <160>;
+	i2c-scl-falling-time-ns = <30>;
+	clock-frequency = <400000>;
+	status = "okay";
+
+	usbc0: fusb302@22 {
+		compatible = "fairchild,fusb302";
+		reg = <0x22>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&chg_cc_int_l>;
+		int-n-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+		vbus-5v-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
 &i2s0 {
 	pinctrl-0 = <&i2s0_2ch_bus>;
 	pinctrl-1 = <&i2s0_2ch_bus_bclk_off>;
@@ -659,6 +677,13 @@
 		};
 	};
 
+	usb-typec {
+		chg_cc_int_l: chg-cc-int-l {
+			rockchip,pins =
+				<1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
 	wifi {
 		wifi_enable_h: wifi-enable-h {
 			rockchip,pins =
@@ -726,6 +751,15 @@
 };
 
 &tcphy0 {
+	extcon = <&usbc0>;
+	status = "okay";
+};
+
+&tcphy0_dp {
+	status = "okay";
+};
+
+&tcphy0_usb3 {
 	status = "okay";
 };
 
@@ -744,15 +778,16 @@
 
 &u2phy0 {
 	status = "okay";
-};
+	extcon = <&usbc0>;
 
-&u2phy0_host {
-	phy-supply = <&vcc5v0_host>;
-	status = "okay";
-};
+	u2phy0_otg: otg-port {
+		status = "okay";
+	};
 
-&u2phy0_otg {
-	status = "okay";
+	u2phy0_host: host-port {
+		phy-supply = <&vcc5v0_host>;
+		status = "okay";
+	};
 };
 
 &u2phy1 {
@@ -765,6 +800,7 @@
 };
 
 &u2phy1_otg {
+	phy-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
@@ -803,6 +839,7 @@
 };
 
 &usbdrd3_0 {
+	extcon = <&usbc0>;
 	status = "okay";
 };
 
