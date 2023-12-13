@@ -577,6 +577,19 @@
 	};
 };
 
+&i2c7 {
+	status = "okay";
+
+	pca9570: gpio@24 {
+		status = "okay";
+		compatible = "nxp,pca9570";
+		reg = <0x24>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		vcc-supply = <&vcc3v3_sys>;
+	};
+};
+
 &i2s0 {
 	pinctrl-0 = <&i2s0_2ch_bus>;
 	pinctrl-1 = <&i2s0_2ch_bus_bclk_off>;
@@ -745,6 +758,19 @@
 		spdif_p0_0: endpoint {
 			remote-endpoint = <&dit_p0_0>;
 		};
+	};
+};
+
+&spi1 {
+	status = "okay";
+	assigned-clocks = <&cru SCLK_SPI1>;
+	assigned-clock-rates = <100000000>;
+
+	w25q128: spi-flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+		m25p,fast-read;
 	};
 };
 
