@@ -688,3 +688,35 @@
 &vopl_mmu {
 	status = "okay";
 };
+
+&vopl_out_hdmi {
+	status = "okay";
+};
+
+&hdmi_in_vopl {
+	status = "okay";
+};
+
+&vopl_out_edp {
+	status = "disabled";
+};
+
+&edp_in_vopl {
+	status = "disabled";
+};
+
+&vopl_out_mipi {
+	status = "disabled";
+};
+
+&mipi_in_vopl {
+	status = "disabled";
+};
+
+&vopl_out_dp {
+	status = "disabled";
+};
+
+&dp_in_vopl {
+	status = "disabled";
+};
