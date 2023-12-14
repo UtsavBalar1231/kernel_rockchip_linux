@@ -194,6 +194,12 @@
 	};
 };
 
+&cdn_dp {
+	extcon = <&usbc0>;
+	phys = <&tcphy0_dp>;
+	status = "okay";
+};
+
 &cpu_alert0 {
 	temperature = <85000>;
 };
@@ -927,4 +933,36 @@
 
 &dp_in_vopl {
 	status = "disabled";
+};
+
+&vopb_out_hdmi {
+	status = "disabled";
+};
+
+&hdmi_in_vopb {
+	status = "disabled";
+};
+
+&vopb_out_edp {
+	status = "disabled";
+};
+
+&edp_in_vopb {
+	status = "disabled";
+};
+
+&vopb_out_mipi {
+	status = "disabled";
+};
+
+&mipi_in_vopb {
+	status = "disabled";
+};
+
+&vopb_out_dp {
+	status = "okay";
+};
+
+&dp_in_vopb {
+	status = "okay";
 };
