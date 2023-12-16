@@ -60,16 +60,23 @@ static int simple_parse_dai(struct device *dev,
 	struct snd_soc_dai *dai;
 	int ret;
 
-	if (!node)
+	if (!node) {
+		dev_err(dev, "no DAI node\n");
 		return 0;
+	}
+
+	dev_info(dev, "found DAI node: %pOF\n", node);
 
 	/*
 	 * Get node via "sound-dai = <&phandle port>"
 	 * it will be used as xxx_of_node on soc_bind_dai_link()
 	 */
 	ret = of_parse_phandle_with_args(node, DAI, CELL, 0, &args);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "failed to parse %s: %d\n", DAI, ret);
 		return ret;
+	}
+	dev_info(dev, "found DAI: %pOF\n", args.np);
 
 	/*
 	 * Try to find from DAI args
@@ -77,10 +84,15 @@ static int simple_parse_dai(struct device *dev,
 	dai = snd_soc_get_dai_via_args(&args);
 	if (dai) {
 		dlc->dai_name = snd_soc_dai_name_get(dai);
+		if (!dlc->dai_name)
+			dev_err(dev, "failed to get DAI name: %d\n", ret);
 		dlc->dai_args = snd_soc_copy_dai_args(dev, &args);
-		if (!dlc->dai_args)
+		if (!dlc->dai_args) {
+			dev_err(dev, "failed to copy DAI args: %d\n", ret);
 			return -ENOMEM;
+		}
 
+		dev_info(dev, "found DAI: %s\n", dlc->dai_name);
 		goto parse_dai_end;
 	}
 
@@ -172,16 +184,24 @@ static int simple_parse_node(struct simple_util_priv *priv,
 	simple_parse_mclk_fs(top, np, dai_props, prefix);
 
 	ret = simple_parse_dai(dev, np, dlc, cpu);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "parse dai failed\n");
 		return ret;
+	}
 
 	ret = simple_util_parse_clk(dev, np, dai, dlc);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "parse clk failed\n");
 		return ret;
+	}
 
 	ret = simple_util_parse_tdm(np, dai);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "parse tdm failed\n");
 		return ret;
+	}
+
+	dev_info(dev, "dai name: %s\n", dlc->dai_name);
 
 	return 0;
 }
@@ -287,6 +307,26 @@ out_put_node:
 	return ret;
 }
 
+static void print_prop_nums(const struct prop_nums *props) {
+	if (!props)
+		return;
+
+	printk(KERN_INFO "cpus: %d, codecs: %d, platforms: %d\n",
+	       props->cpus, props->codecs, props->platforms);
+}
+
+static void print_link_info(struct link_info *li)
+{
+	if (!li)
+		return;
+
+	printk(KERN_INFO "Link: %d\n", li->link);
+	printk(KERN_INFO "CPU: %d\n", li->cpu);
+
+	for (int i = 0; i < li->cpu; i++)
+		print_prop_nums(&li->num[i]);
+}
+
 static int simple_dai_link_of(struct simple_util_priv *priv,
 			      struct device_node *np,
 			      struct device_node *codec,
@@ -309,7 +349,20 @@ static int simple_dai_link_of(struct simple_util_priv *priv,
 	cpu  = np;
 	node = of_get_parent(np);
 
-	dev_dbg(dev, "link_of (%pOF)\n", node);
+	dev_info(dev, "link_of (%pOF)\n", node);
+	print_link_info(li);
+
+	if (!cpus)
+		dev_err(dev, "cpus is NULL\n");
+
+	if (cpus->name)
+		dev_info(dev, "cpus name: %s, dai name: %s\n", cpus->name, cpus->dai_name);
+
+	if (!codecs)
+		dev_err(dev, "codecs is NULL\n");
+
+	if (codecs->name)
+		dev_info(dev, "codecs name: %s, dai name: %s\n", codecs->name, codecs->dai_name);
 
 	/* For single DAI link & old style of DT node */
 	if (is_top)
@@ -319,16 +372,22 @@ static int simple_dai_link_of(struct simple_util_priv *priv,
 	plat = of_get_child_by_name(node, prop);
 
 	ret = simple_parse_node(priv, cpu, li, prefix, &single_cpu);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "parse cpu failed\n");
 		goto dai_link_of_err;
+	}
 
 	ret = simple_parse_node(priv, codec, li, prefix, NULL);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "parse codec failed\n");
 		goto dai_link_of_err;
+	}
 
 	ret = simple_parse_platform(plat, platforms);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "parse platform failed\n");
 		goto dai_link_of_err;
+	}
 
 	snprintf(dai_name, sizeof(dai_name),
 		 "%s-%s", cpus->dai_name, codecs->dai_name);
@@ -522,32 +581,44 @@ static int simple_parse_of(struct simple_util_priv *priv, struct link_info *li)
 	int ret;
 
 	ret = simple_util_parse_widgets(card, PREFIX);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "parse widgets error\n");
 		return ret;
+	}
 
 	ret = simple_util_parse_routing(card, PREFIX);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "parse routing error\n");
 		return ret;
+	}
 
 	ret = simple_util_parse_pin_switches(card, PREFIX);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "parse pin switches error\n");
 		return ret;
+	}
 
 	/* Single/Muti DAI link(s) & New style of DT node */
 	memset(li, 0, sizeof(*li));
 	ret = simple_for_each_link(priv, li,
 				   simple_dai_link_of,
 				   simple_dai_link_of_dpcm);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "parse link error\n");
 		return ret;
+	}
 
 	ret = simple_util_parse_card_name(card, PREFIX);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "parse card name error\n");
 		return ret;
+	}
 
 	ret = simple_populate_aux(priv);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "populate aux error\n");
 		return ret;
+	}
 
 	ret = snd_soc_of_parse_aux_devs(card, PREFIX "aux-devs");
 
@@ -732,15 +803,21 @@ static int simple_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	ret = simple_get_dais_count(priv, li);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "get dais count error\n");
 		return ret;
+	}
 
-	if (!li->link)
+	if (!li->link) {
+		dev_err(dev, "no link\n");
 		return -EINVAL;
+	}
 
 	ret = simple_util_init_priv(priv, li);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "init priv error\n");
 		return ret;
+	}
 
 	if (np && of_device_is_available(np)) {
 

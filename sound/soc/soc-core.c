@@ -309,6 +309,7 @@ const char *snd_soc_dai_name_get(struct snd_soc_dai *dai)
 	if (dai->component->name)
 		return dai->component->name;
 
+	dev_err(dai->dev, "%s: no name\n", __func__);
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(snd_soc_dai_name_get);
@@ -828,25 +829,49 @@ static int snd_soc_is_matching_component(
 {
 	struct device_node *component_of_node;
 
-	if (!dlc)
+	if (!dlc) {
+		pr_err("%s: No dlc such as %s, component_of_node: %s\n",
+		       __func__,
+		       component->name,
+		       component_of_node ? component_of_node->name : "NULL");
 		return 0;
+	}
 
 	if (dlc->dai_args) {
 		struct snd_soc_dai *dai;
 
 		for_each_component_dais(component, dai)
-			if (snd_soc_is_matching_dai(dlc, dai))
+			if (snd_soc_is_matching_dai(dlc, dai)) {
+				pr_err("Found component of %s\n", dlc->dai_name);
 				return 1;
+			}
+		pr_err("%s: DAI match fail for component %s, dlc %s, component_of_node: %s\n",
+		       __func__,
+		       component->name,
+		       dlc->dai_name,
+		       component_of_node ? component_of_node->name : "NULL");
 		return 0;
 	}
 
 	component_of_node = soc_component_to_node(component);
 
-	if (dlc->of_node && component_of_node != dlc->of_node)
+	if (dlc->of_node && component_of_node != dlc->of_node) {
+		pr_err("%s: Mismatch component %s and dlc %s, component_of_node: %s\n",
+		       __func__,
+		       component->name,
+		       dlc->dai_name,
+		       component_of_node ? component_of_node->name : "NULL");
 		return 0;
-	if (dlc->name && strcmp(component->name, dlc->name))
+	}
+	if (dlc->name && strcmp(component->name, dlc->name)) {
+		pr_err("%s: Component name mismatch %s, expected %s, component_of_node: %s\n",
+		       __func__,
+		       component->name, dlc->name,
+		       component_of_node ? component_of_node->name : "NULL");
 		return 0;
+	}
 
+	pr_err("%s: Found component of %s\n", __func__, dlc->dai_name);
 	return 1;
 }
 
@@ -1003,7 +1028,7 @@ component_empty:
 	return -EINVAL;
 
 component_not_found:
-	dev_dbg(card->dev, "ASoC: Component %s not found for link %s\n", dlc->name, link->name);
+	dev_err(card->dev, "ASoC: Component %s not found for link %s\n", dlc->name, link->name);
 	return -EPROBE_DEFER;
 
 dai_empty:
@@ -1065,8 +1090,10 @@ static int snd_soc_compensate_channel_connection_map(struct snd_soc_card *card,
 	}
 
 	/* do nothing if it has own maps */
-	if (dai_link->ch_maps)
+	if (dai_link->ch_maps) {
+		dev_dbg(card->dev, "dai_link %s has own ch_maps", dai_link->stream_name);
 		goto sanity_check;
+	}
 
 	/* check default map size */
 	if (dai_link->num_cpus   > MAX_DEFAULT_CH_MAP_SIZE ||
@@ -1084,7 +1111,7 @@ static int snd_soc_compensate_channel_connection_map(struct snd_soc_card *card,
 		dai_link->ch_maps = default_ch_map_1codec;	/* for N:1 */
 
 sanity_check:
-	dev_dbg(card->dev, "dai_link %s\n", dai_link->stream_name);
+	dev_err(card->dev, "dai_link %s\n", dai_link->stream_name);
 	for_each_link_ch_maps(dai_link, i, ch_maps) {
 		if ((ch_maps->cpu   >= dai_link->num_cpus) ||
 		    (ch_maps->codec >= dai_link->num_codecs)) {
@@ -1096,7 +1123,7 @@ sanity_check:
 			return -EINVAL;
 		}
 
-		dev_dbg(card->dev, "  [%d] cpu%d <-> codec%d\n",
+		dev_err(card->dev, "  [%d] cpu%d <-> codec%d\n",
 			i, ch_maps->cpu, ch_maps->codec);
 	}
 
@@ -1149,26 +1176,40 @@ static int snd_soc_add_pcm_runtime(struct snd_soc_card *card,
 	 * Notify the machine driver for extra initialization
 	 */
 	ret = snd_soc_card_add_dai_link(card, dai_link);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: snd_soc_card_add_dai_link failed (%d)\n",
+			ret);
 		return ret;
+	}
 
-	if (dai_link->ignore)
+	if (dai_link->ignore) {
+		dev_info(card->dev, "ASoC: ignore %s\n", dai_link->name);
 		return 0;
+	}
 
-	dev_dbg(card->dev, "ASoC: binding %s\n", dai_link->name);
+	dev_err(card->dev, "ASoC: binding %s\n", dai_link->name);
 
 	ret = soc_dai_link_sanity_check(card, dai_link);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: dai_link_sanity_check failed (%d)\n",
+			ret);
 		return ret;
+	}
 
 	rtd = soc_new_pcm_runtime(card, dai_link);
-	if (!rtd)
+	if (!rtd) {
+		dev_err(card->dev,
+			"ASoC: soc_new_pcm_runtime failed (%d)\n",
+			ret);
 		return -ENOMEM;
+	}
 
 	for_each_link_cpus(dai_link, i, cpu) {
 		snd_soc_rtd_to_cpu(rtd, i) = snd_soc_find_dai(cpu);
 		if (!snd_soc_rtd_to_cpu(rtd, i)) {
-			dev_info(card->dev, "ASoC: CPU DAI %s not registered\n",
+			dev_err(card->dev, "ASoC: CPU DAI %s not registered\n",
 				 cpu->dai_name);
 			goto _err_defer;
 		}
@@ -1179,7 +1220,7 @@ static int snd_soc_add_pcm_runtime(struct snd_soc_card *card,
 	for_each_link_codecs(dai_link, i, codec) {
 		snd_soc_rtd_to_codec(rtd, i) = snd_soc_find_dai(codec);
 		if (!snd_soc_rtd_to_codec(rtd, i)) {
-			dev_info(card->dev, "ASoC: CODEC DAI %s not registered\n",
+			dev_err(card->dev, "ASoC: CODEC DAI %s not registered\n",
 				 codec->dai_name);
 			goto _err_defer;
 		}
@@ -1190,16 +1231,22 @@ static int snd_soc_add_pcm_runtime(struct snd_soc_card *card,
 	/* Find PLATFORM from registered PLATFORMs */
 	for_each_link_platforms(dai_link, i, platform) {
 		for_each_component(component) {
-			if (!snd_soc_is_matching_component(platform, component))
+			if (!snd_soc_is_matching_component(platform, component)) {
+				dev_err(card->dev,
+					"ASoC: component %s not registered\n",
+					component->name);
 				continue;
+			}
 
 			snd_soc_rtd_add_component(rtd, component);
 		}
 	}
 
+	dev_info(card->dev, "ASoC: add %s\n", rtd->dai_link->name);
 	return 0;
 
 _err_defer:
+	dev_err(card->dev, "ASoC: defer %s\n", rtd->dai_link->name);
 	snd_soc_remove_pcm_runtime(card, rtd);
 	return -EPROBE_DEFER;
 }
@@ -1208,18 +1255,26 @@ int snd_soc_add_pcm_runtimes(struct snd_soc_card *card,
 			     struct snd_soc_dai_link *dai_link,
 			     int num_dai_link)
 {
+	pr_err("%s: num_dai_link: %d\n", __func__, num_dai_link);
 	for (int i = 0; i < num_dai_link; i++) {
 		int ret;
 
 		ret = snd_soc_compensate_channel_connection_map(card, dai_link + i);
-		if (ret < 0)
+		if (ret < 0) {
+			dev_err(card->dev,
+				"ASoC: compensate_channel_connection_map failed\n");
 			return ret;
+		}
 
 		ret = snd_soc_add_pcm_runtime(card, dai_link + i);
-		if (ret < 0)
+		if (ret < 0) {
+			dev_err(card->dev,
+				"ASoC: snd_soc_add_pcm_runtime failed\n");
 			return ret;
+		}
 	}
 
+	pr_err("%s: Successfully added pcm runtimes num_dai_link: %d\n", __func__, num_dai_link);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(snd_soc_add_pcm_runtimes);
@@ -2138,14 +2193,21 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 
 	/* bind aux_devs too */
 	ret = soc_bind_aux_dev(card);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: can't bind aux dev for card %s: %d\n",
+			card->name, ret);
 		goto probe_end;
+	}
 
 	/* add predefined DAI links to the list */
 	card->num_rtd = 0;
 	ret = snd_soc_add_pcm_runtimes(card, card->dai_link, card->num_links);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev, "ASoC: can't add DAI links for card %s: %d\n",
+			card->name, ret);
 		goto probe_end;
+	}
 
 	/* card bind complete so register a sound card */
 	ret = snd_card_new(card->dev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1,
@@ -2163,22 +2225,35 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 
 	ret = snd_soc_dapm_new_controls(&card->dapm, card->dapm_widgets,
 					card->num_dapm_widgets);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: can't add DAPM controls for card %s: %d\n",
+			card->name, ret);
 		goto probe_end;
+	}
 
 	ret = snd_soc_dapm_new_controls(&card->dapm, card->of_dapm_widgets,
 					card->num_of_dapm_widgets);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: can't add OF DAPM controls for card %s: %d\n",
+			card->name, ret);
 		goto probe_end;
+	}
 
 	/* initialise the sound card only once */
 	ret = snd_soc_card_probe(card);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: failed to instantiate card %d\n", ret);
 		goto probe_end;
+	}
 
 	/* probe all components used by DAI links on this card */
 	ret = soc_probe_link_components(card);
 	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: failed to probe_link card %d\n", ret);
 		if (ret != -EPROBE_DEFER) {
 			dev_err(card->dev,
 				"ASoC: failed to instantiate card %d\n", ret);
@@ -2204,8 +2279,12 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 
 	for_each_card_rtds(card, rtd) {
 		ret = soc_init_pcm_runtime(card, rtd);
-		if (ret < 0)
+		if (ret < 0) {
+			dev_err(card->dev,
+				"ASoC: failed to run instantiate card %d\n",
+				ret);
 			goto probe_end;
+		}
 	}
 
 	snd_soc_dapm_link_dai_widgets(card);
@@ -2213,12 +2292,19 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 
 	ret = snd_soc_add_card_controls(card, card->controls,
 					card->num_controls);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: can't add card controls for card %s: %d\n",
+			card->name, ret);
 		goto probe_end;
+	}
 
 	ret = snd_soc_dapm_add_routes(&card->dapm, card->dapm_routes,
 				      card->num_dapm_routes);
 	if (ret < 0) {
+		dev_err(card->dev,
+			 "%s: snd_soc_dapm_add_routes failed: %d\n",
+			 __func__, ret);
 		if (card->disable_route_checks) {
 			dev_info(card->dev,
 				 "%s: disable_route_checks set, ignoring errors on add_routes\n",
@@ -2233,8 +2319,12 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 
 	ret = snd_soc_dapm_add_routes(&card->dapm, card->of_dapm_routes,
 				      card->num_of_dapm_routes);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			 "%s: snd_soc_dapm_add_routes failed: %d\n",
+			 __func__, ret);
 		goto probe_end;
+	}
 
 	/* try to set some sane longname if DMI is available */
 	snd_soc_set_dmi_name(card, NULL);
@@ -2260,8 +2350,11 @@ static int snd_soc_bind_card(struct snd_soc_card *card)
 	}
 
 	ret = snd_soc_card_late_probe(card);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(card->dev,
+			"ASoC: failed to late probe card %d\n", ret);
 		goto probe_end;
+	}
 
 	snd_soc_dapm_new_widgets(card);
 	snd_soc_card_fixup_controls(card);
@@ -2289,6 +2382,7 @@ probe_end:
 	snd_soc_card_mutex_unlock(card);
 	mutex_unlock(&client_mutex);
 
+	dev_err(card->dev, "ASoC: probe returned %d\n", ret);
 	return ret;
 }
 
@@ -2487,8 +2581,10 @@ EXPORT_SYMBOL_GPL(snd_soc_add_dai_controls);
  */
 int snd_soc_register_card(struct snd_soc_card *card)
 {
-	if (!card->name || !card->dev)
+	if (!card->name || !card->dev) {
+		dev_err(card->dev, "ASoC: Card name or device not set\n");
 		return -EINVAL;
+	}
 
 	dev_set_drvdata(card->dev, card);
 
@@ -2507,6 +2603,7 @@ int snd_soc_register_card(struct snd_soc_card *card)
 	mutex_init(&card->dapm_mutex);
 	mutex_init(&card->pcm_mutex);
 
+	dev_info(card->dev, "ASoC: Registering card '%s'\n", card->name);
 	return snd_soc_bind_card(card);
 }
 EXPORT_SYMBOL_GPL(snd_soc_register_card);
@@ -3468,10 +3565,29 @@ int snd_soc_get_dlc(const struct of_phandle_args *args, struct snd_soc_dai_link_
 	for_each_component(pos) {
 		struct device_node *component_of_node = soc_component_to_node(pos);
 
-		if (component_of_node != args->np || !pos->num_dai)
-			continue;
+		if (!pos->num_dai) {
+			if (component_of_node != args->np) {
+				pr_err("Invalid component %s, component_of_node: %s, args->np: %s, num_dai: %d\n",
+						pos->name, component_of_node ? component_of_node->name : "NULL",
+						args->np ? args->np->name : "NULL",
+						pos->num_dai);
+				continue;
+			}
+		}
+
+		if (component_of_node != args->np) {
+			if (pos->num_dai) {
+				pr_err("Invalid component %s, component_of_node: %s, args->np: %s, num_dai: %d\n",
+						pos->name, component_of_node ? component_of_node->name : "NULL",
+						args->np ? args->np->name : "NULL",
+						pos->num_dai);
+			}
+		}
+
+		pr_info("try to find component of %s\n", dlc->dai_name);
 
 		ret = snd_soc_component_of_xlate_dai_name(pos, args, &dlc->dai_name);
+		pr_info("%s: find component %d\n", __func__, ret);
 		if (ret == -ENOTSUPP) {
 			struct snd_soc_dai *dai;
 			int id = -1;
@@ -3510,14 +3626,17 @@ int snd_soc_get_dlc(const struct of_phandle_args *args, struct snd_soc_dai_link_
 			 * node. This may happen if a device provides several
 			 * components
 			 */
+			pr_err("ERROR: can't get sound-dai %s\n", dlc->dai_name);
 			continue;
 		}
 
 		break;
 	}
 
-	if (ret == 0)
+	if (ret == 0) {
+		pr_err("Found component of %s\n", dlc->dai_name);
 		dlc->of_node = args->np;
+	}
 
 	mutex_unlock(&client_mutex);
 	return ret;
@@ -3532,13 +3651,20 @@ int snd_soc_of_get_dlc(struct device_node *of_node,
 	struct of_phandle_args __args;
 	int ret;
 
-	if (!args)
+	if (!args) {
+		pr_err("%s: NULL args\n", __func__);
 		args = &__args;
+	}
 
 	ret = of_parse_phandle_with_args(of_node, "sound-dai",
 					 "#sound-dai-cells", index, args);
-	if (ret)
+	if (ret) {
+		pr_err("%s: can't get sound-dai %d from %s\n", __func__, index, of_node->full_name);
 		return ret;
+	}
+
+	pr_info("%s: dai index: %d, node name: %s, dai name: %s\n",
+			__func__, index, of_node->full_name, dlc->dai_name);
 
 	return snd_soc_get_dlc(args, dlc);
 }
@@ -3550,8 +3676,8 @@ int snd_soc_get_dai_name(const struct of_phandle_args *args,
 	struct snd_soc_dai_link_component dlc;
 	int ret = snd_soc_get_dlc(args, &dlc);
 
-	if (ret == 0)
-		*dai_name = dlc.dai_name;
+	// if (ret == 0)
+	*dai_name = dlc.dai_name;
 
 	return ret;
 }
@@ -3561,6 +3687,8 @@ int snd_soc_of_get_dai_name(struct device_node *of_node,
 			    const char **dai_name, int index)
 {
 	struct snd_soc_dai_link_component dlc;
+	pr_info("%s: dai index: %d, node name: %s, dai name: %s\n",
+			__func__, index, of_node->full_name, *dai_name);
 	int ret = snd_soc_of_get_dlc(of_node, NULL, &dlc, index);
 
 	if (ret == 0)

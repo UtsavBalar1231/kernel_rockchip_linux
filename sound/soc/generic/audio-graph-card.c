@@ -125,16 +125,24 @@ static int graph_parse_node(struct simple_util_priv *priv,
 	graph_parse_mclk_fs(top, ep, dai_props);
 
 	ret = graph_util_parse_dai(dev, ep, dlc, cpu);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse dai: %d\n", ret);
 		return ret;
+	}
 
 	ret = simple_util_parse_tdm(ep, dai);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse tdm: %d\n", ret);
 		return ret;
+	}
 
 	ret = simple_util_parse_clk(dev, ep, dai, dlc);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse clk: %d\n", ret);
 		return ret;
+	}
+
+	dev_err(dev, "dai_link->num_codecs = %d\n", dai_link->num_codecs);
 
 	return 0;
 }
@@ -175,7 +183,7 @@ static int graph_dai_link_of_dpcm(struct simple_util_priv *priv,
 	char dai_name[64];
 	int ret;
 
-	dev_dbg(dev, "link_of DPCM (%pOF)\n", ep);
+	dev_err(dev, "link_of DPCM (%pOF)\n", ep);
 
 	if (li->cpu) {
 		struct snd_soc_card *card = simple_priv_to_card(priv);
@@ -190,8 +198,10 @@ static int graph_dai_link_of_dpcm(struct simple_util_priv *priv,
 		dai_link->dpcm_merged_format	= 1;
 
 		ret = graph_parse_node(priv, cpu_ep, li, &is_single_links);
-		if (ret)
+		if (ret) {
+			dev_err(dev, "failed to parse cpu_ep graph: %d\n", ret);
 			return ret;
+		}
 
 		snprintf(dai_name, sizeof(dai_name),
 			 "fe.%pOFP.%s", cpus->of_node, cpus->dai_name);
@@ -269,15 +279,19 @@ static int graph_dai_link_of(struct simple_util_priv *priv,
 	char dai_name[64];
 	int ret, is_single_links = 0;
 
-	dev_dbg(dev, "link_of (%pOF)\n", cpu_ep);
+	dev_err(dev, "link_of (%pOF)\n", cpu_ep);
 
 	ret = graph_parse_node(priv, cpu_ep, li, &is_single_links);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse cpu_ep: %d\n", ret);
 		return ret;
+	}
 
 	ret = graph_parse_node(priv, codec_ep, li, NULL);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse codec_ep: %d\n", ret);
 		return ret;
+	}
 
 	snprintf(dai_name, sizeof(dai_name),
 		 "%s-%s", cpus->dai_name, codecs->dai_name);
@@ -286,8 +300,10 @@ static int graph_dai_link_of(struct simple_util_priv *priv,
 	simple_util_canonicalize_platform(platforms, cpus);
 
 	ret = graph_link_init(priv, cpu_ep, codec_ep, li, dai_name);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to init link: %d\n", ret);
 		return ret;
+	}
 
 	li->link++;
 
@@ -553,15 +569,21 @@ int audio_graph_parse_of(struct simple_util_priv *priv, struct device *dev)
 	card->dev = dev;
 
 	ret = graph_get_dais_count(priv, li);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to get dais count: %d\n", ret);
 		return ret;
+	}
 
-	if (!li->link)
+	if (!li->link) {
+		dev_err(dev, "no link\n");
 		return -EINVAL;
+	}
 
 	ret = simple_util_init_priv(priv, li);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to init priv: %d\n", ret);
 		return ret;
+	}
 
 	priv->pa_gpio = devm_gpiod_get_optional(dev, "pa", GPIOD_OUT_LOW);
 	if (IS_ERR(priv->pa_gpio)) {
@@ -571,31 +593,41 @@ int audio_graph_parse_of(struct simple_util_priv *priv, struct device *dev)
 	}
 
 	ret = simple_util_parse_widgets(card, NULL);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse widgets: %d\n", ret);
 		return ret;
+	}
 
 	ret = simple_util_parse_routing(card, NULL);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse routing: %d\n", ret);
 		return ret;
+	}
 
 	memset(li, 0, sizeof(*li));
 	ret = graph_for_each_link(priv, li,
 				  graph_dai_link_of,
 				  graph_dai_link_of_dpcm);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse links: %d\n", ret);
 		goto err;
+	}
 
 	ret = simple_util_parse_card_name(card, NULL);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to parse card name: %d\n", ret);
 		goto err;
+	}
 
 	snd_soc_card_set_drvdata(card, priv);
 
 	simple_util_debug_info(priv);
 
 	ret = devm_snd_soc_register_card(dev, card);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(dev, "failed to register card: %d\n", ret);
 		goto err;
+	}
 
 	devm_kfree(dev, li);
 	return 0;

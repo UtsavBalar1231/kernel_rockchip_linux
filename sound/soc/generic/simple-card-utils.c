@@ -697,8 +697,10 @@ int simple_util_parse_routing(struct snd_soc_card *card,
 
 	snprintf(prop, sizeof(prop), "%s%s", prefix, "routing");
 
-	if (!of_property_read_bool(node, prop))
+	if (!of_property_read_bool(node, prop)) {
+		dev_err(card->dev, "%s: no routing\n", __func__);
 		return 0;
+	}
 
 	return snd_soc_of_parse_audio_routing(card, prop);
 }
@@ -718,6 +720,7 @@ int simple_util_parse_widgets(struct snd_soc_card *card,
 	if (of_property_read_bool(node, prop))
 		return snd_soc_of_parse_audio_simple_widgets(card, prop);
 
+	dev_warn(card->dev, "%s: no widgets\n", __func__);
 	/* no widgets is not error */
 	return 0;
 }
@@ -1117,6 +1120,7 @@ int graph_util_parse_dai(struct device *dev, struct device_node *ep,
 	 */
 	ret = snd_soc_get_dlc(&args, dlc);
 	if (ret < 0) {
+		dev_err(dev, "failed to get DAI name: %d\n", ret);
 		of_node_put(node);
 		return ret;
 	}

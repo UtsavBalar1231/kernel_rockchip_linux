@@ -765,6 +765,7 @@ static int es8316_probe(struct snd_soc_component *component)
 		dev_err(component->dev, "unable to enable mclk\n");
 		return ret;
 	}
+	dev_err(component->dev, "mclk enabled\n");
 
 	/* Reset codec and enable current state machine */
 	snd_soc_component_write(component, ES8316_RESET, 0x3f);
@@ -785,6 +786,7 @@ static int es8316_probe(struct snd_soc_component *component)
 	 */
 	snd_soc_component_write(component, ES8316_CLKMGR_ADCOSR, 0x32);
 
+	dev_err(component->dev, "%s: Exit.\n", __func__);
 	return 0;
 }
 
@@ -859,14 +861,19 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client)
 
 	es8316 = devm_kzalloc(&i2c_client->dev, sizeof(struct es8316_priv),
 			      GFP_KERNEL);
-	if (es8316 == NULL)
+	if (es8316 == NULL) {
+		dev_err(&i2c_client->dev, "kzalloc failed\n");
 		return -ENOMEM;
+	}
 
 	i2c_set_clientdata(i2c_client, es8316);
 
 	es8316->regmap = devm_regmap_init_i2c(i2c_client, &es8316_regmap);
-	if (IS_ERR(es8316->regmap))
+	if (IS_ERR(es8316->regmap)) {
+		dev_err(dev, "Failed to init regmap: %ld\n",
+			PTR_ERR(es8316->regmap));
 		return PTR_ERR(es8316->regmap);
+	}
 
 	es8316->irq = i2c_client->irq;
 	mutex_init(&es8316->lock);
@@ -881,9 +888,15 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client)
 		}
 	}
 
-	return devm_snd_soc_register_component(&i2c_client->dev,
+	dev_info(dev, "Using IRQ %d\n", es8316->irq);
+
+	ret = devm_snd_soc_register_component(&i2c_client->dev,
 				      &soc_component_dev_es8316,
 				      &es8316_dai, 1);
+
+	dev_err(dev, "Register ES8316 component: %d\n", ret);
+
+	return ret;
 }
 
 static const struct i2c_device_id es8316_i2c_id[] = {
@@ -913,7 +926,7 @@ static struct i2c_driver es8316_i2c_driver = {
 	.driver = {
 		.name			= "es8316",
 		.acpi_match_table	= ACPI_PTR(es8316_acpi_match),
-		.of_match_table		= of_match_ptr(es8316_of_match),
+		.of_match_table		= es8316_of_match,
 	},
 	.probe		= es8316_i2c_probe,
 	.id_table	= es8316_i2c_id,

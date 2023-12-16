@@ -105,14 +105,18 @@ int devm_snd_soc_register_card(struct device *dev, struct snd_soc_card *card)
 	int ret;
 
 	ptr = devres_alloc(devm_card_release, sizeof(*ptr), GFP_KERNEL);
-	if (!ptr)
+	if (!ptr) {
+		dev_err(dev, "devm_card_release alloc failed\n");
 		return -ENOMEM;
+	}
 
 	ret = snd_soc_register_card(card);
 	if (ret == 0) {
+		dev_info(dev, "Registered card %s\n", card->name);
 		*ptr = card;
 		devres_add(dev, ptr);
 	} else {
+		dev_err(dev, "snd_soc_register_card failed: %d\n", ret);
 		devres_free(ptr);
 	}
 
