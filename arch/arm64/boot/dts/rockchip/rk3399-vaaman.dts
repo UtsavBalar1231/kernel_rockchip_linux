@@ -170,10 +170,18 @@
 		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
 	};
 
-	sound: sound {
+	analog-sound {
 		compatible = "audio-graph-card";
 		label = "Analog";
-		dais = <&i2s0_p0>;
+
+		widgets = "Microphone", "Mic Jack",
+			  "Headphone", "Headphones";
+
+		routing = "MIC2", "Mic Jack",
+			  "Headphones", "HPOL",
+			  "Headphones", "HPOR";
+
+		dais = <&i2s0_2ch_p0>;
 	};
 
 	sound-dit {
@@ -550,11 +558,13 @@
 		reg = <0x11>;
 		clocks = <&cru SCLK_I2S_8CH_OUT>;
 		clock-names = "mclk";
+		assigned-clocks = <&cru SCLK_I2S_8CH_OUT>;
+		assigned-clock-rates = <12288000>;
 		#sound-dai-cells = <0>;
 
 		port {
 			es8316_p0_0: endpoint {
-				remote-endpoint = <&i2s0_p0_0>;
+				remote-endpoint = <&i2s0_2ch_p0_0>;
 			};
 		};
 	};
@@ -597,14 +607,16 @@
 };
 
 &i2s0 {
+	resets = <&cru SRST_I2S0_8CH>, <&cru SRST_H_I2S0_8CH>;
+	reset-names = "reset-m", "reset-h";
+	pinctrl-names = "default";
 	pinctrl-0 = <&i2s0_2ch_bus>;
-	pinctrl-1 = <&i2s0_2ch_bus_bclk_off>;
 	rockchip,capture-channels = <2>;
 	rockchip,playback-channels = <2>;
 	status = "okay";
 
-	i2s0_p0: port {
-		i2s0_p0_0: endpoint {
+	i2s0_2ch_p0: port {
+		i2s0_2ch_p0_0: endpoint {
 			dai-format = "i2s";
 			mclk-fs = <256>;
 			remote-endpoint = <&es8316_p0_0>;
