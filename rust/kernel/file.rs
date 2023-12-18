@@ -337,7 +337,7 @@ impl DeferredFdCloser {
         }
 
         // SAFETY: Just an FFI call. This is safe no matter what `fd` is.
-        let file = unsafe { bindings::close_fd_get_file(fd) };
+        let file = unsafe { bindings::file_close_fd(fd) };
         if file.is_null() {
             // We don't clean up the task work since that might be expensive if the task work queue
             // is long. Just let it execute and let it clean up for itself.
