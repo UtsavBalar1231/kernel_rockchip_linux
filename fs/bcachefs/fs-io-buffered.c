@@ -52,14 +52,11 @@ struct readpages_iter {
 static int readpages_iter_init(struct readpages_iter *iter,
 			       struct readahead_control *ractl)
 {
-	struct folio **fi;
-	int ret;
-
 	memset(iter, 0, sizeof(*iter));
 
 	iter->mapping = ractl->mapping;
 
-	ret = bch2_filemap_get_contig_folios_d(iter->mapping,
+	int ret = bch2_filemap_get_contig_folios_d(iter->mapping,
 				ractl->_index << PAGE_SHIFT,
 				(ractl->_index + ractl->_nr_pages) << PAGE_SHIFT,
 				0, mapping_gfp_mask(iter->mapping),
@@ -638,7 +635,7 @@ do_io:
 		/* Check for writing past i_size: */
 		WARN_ONCE((bio_end_sector(&w->io->op.wbio.bio) << 9) >
 			  round_up(i_size, block_bytes(c)) &&
-			  !test_bit(BCH_FS_EMERGENCY_RO, &c->flags),
+			  !test_bit(BCH_FS_emergency_ro, &c->flags),
 			  "writing past i_size: %llu > %llu (unrounded %llu)\n",
 			  bio_end_sector(&w->io->op.wbio.bio) << 9,
 			  round_up(i_size, block_bytes(c)),
@@ -826,7 +823,7 @@ static int __bch2_buffered_write(struct bch_inode_info *inode,
 	struct bch_fs *c = inode->v.i_sb->s_fs_info;
 	struct bch2_folio_reservation res;
 	folios fs;
-	struct folio **fi, *f;
+	struct folio *f;
 	unsigned copied = 0, f_offset, f_copied;
 	u64 end = pos + len, f_pos, f_len;
 	loff_t last_folio_pos = inode->v.i_size;
