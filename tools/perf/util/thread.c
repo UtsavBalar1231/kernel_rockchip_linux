@@ -349,34 +349,33 @@ int thread__insert_map(struct thread *thread, struct map *map)
 	return maps__insert(thread__maps(thread), map);
 }
 
-static int __thread__prepare_access(struct thread *thread)
+struct thread__prepare_access_maps_cb_args {
+	int err;
+	struct maps *maps;
+};
+
+static int thread__prepare_access_maps_cb(struct map *map, void *data)
 {
 	bool initialized = false;
-	int err = 0;
-	struct maps *maps = thread__maps(thread);
-	struct map_rb_node *rb_node;
+	struct thread__prepare_access_maps_cb_args *args = data;
 
-	down_read(maps__lock(maps));
+	args->err = unwind__prepare_access(args->maps, map, &initialized);
 
-	maps__for_each_entry(maps, rb_node) {
-		err = unwind__prepare_access(thread__maps(thread), rb_node->map, &initialized);
-		if (err || initialized)
-			break;
-	}
-
-	up_read(maps__lock(maps));
-
-	return err;
+	return (args->err || initialized) ? 1 : 0;
 }
 
 static int thread__prepare_access(struct thread *thread)
 {
-	int err = 0;
+	struct thread__prepare_access_maps_cb_args args = {
+		.err = 0,
+	};
 
-	if (dwarf_callchain_users)
-		err = __thread__prepare_access(thread);
+	if (dwarf_callchain_users) {
+		args.maps = thread__maps(thread);
+		maps__for_each_map(thread__maps(thread), thread__prepare_access_maps_cb, &args);
+	}
 
-	return err;
+	return args.err;
 }
 
 static int thread__clone_maps(struct thread *thread, struct thread *parent, bool do_maps_clone)
@@ -385,7 +384,7 @@ static int thread__clone_maps(struct thread *thread, struct thread *parent, bool
 	if (thread__pid(thread) == thread__pid(parent))
 		return thread__prepare_access(thread);
 
-	if (thread__maps(thread) == thread__maps(parent)) {
+	if (RC_CHK_EQUAL(thread__maps(thread), thread__maps(parent))) {
 		pr_debug("broken map groups on thread %d/%d parent %d/%d\n",
 			 thread__pid(thread), thread__tid(thread),
 			 thread__pid(parent), thread__tid(parent));
