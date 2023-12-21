@@ -1407,7 +1407,9 @@ static void mark_readonly(void)
 		 * flushed so that we don't hit false positives looking for
 		 * insecure pages which are W+X.
 		 */
+#ifdef CONFIG_MODULES
 		flush_module_init_free_work();
+#endif
 		mark_rodata_ro();
 		rodata_test();
 	} else
