@@ -12,15 +12,13 @@
 	model = "Vicharak RK3399 VAAMAN VO.3 LINUX";
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 
-	aliases {
-		mmc0 = &sdmmc;
-		mmc1 = &sdhci;
-		mmc2 = &sdio0;
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 earlyprintk loglevel=7 coherent_pool=1m";
 	};
 
 	clk_cam_24m: clk-cam-24m {
 		compatible = "fixed-clock";
-		clock-frequency = <25000000>;
+		clock-frequency = <24000000>;
 		clock-output-names = "inclk";
 		#clock-cells = <0>;
 		status = "okay";
@@ -117,21 +115,36 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
+	otp_eeprom: otp_eeprom@50 {
+		compatible = "rk,otp_eeprom";
+		reg = <0x50>;
+		status = "okay";
+	};
+
+	dw9817: dw9817-vcm@c {
+		compatible = "dongwoon,dw9817-vcm";
+		reg = <0x0c>;
+		status = "okay";
+	};
+
 	camera_imx708: camera-imx708@1a {
 		status = "okay";
 		compatible = "sony,imx708";
 		reg = <0x1a>;
 		clocks = <&clk_cam_24m>;
 		clock-names = "inclk";
-		rockchip,camera-module-index = <1>;
-		rockchip,camera-module-facing = "front";
-		rockchip,camera-module-name = "rpi-camera-v3";
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "arducam-imx708";
 		rockchip,camera-module-lens-name = "default";
+		eeprom-ctrl = <&otp_eeprom>;
+		lens-focus = <&dw9817>;
 
 		port {
 			ucam_out0: endpoint {
 				remote-endpoint = <&mipi_in_ucam0>;
 				data-lanes = <1 2>;
+				clock-noncontinuous;
 				link-frequencies = /bits/ 64 <450000000>;
 			};
 		};
