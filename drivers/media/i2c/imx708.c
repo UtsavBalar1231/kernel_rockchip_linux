@@ -28,6 +28,9 @@
 #define V4L2_CID_DIGITAL_GAIN V4L2_CID_GAIN
 #endif
 
+#define IMX708_NAME "imx708"
+#define OF_CAMERA_HDR_MODE "rockchip,camera-hdr-mode"
+
 #define IMX708_LANES 2
 
 /*
@@ -150,20 +153,6 @@ module_param(debug, int, 0644);
 #define IMX708_LPF_INTENSITY_DISABLED	0x01
 #define IMX708_LPF_INTENSITY		0xC429
 
-#define IMX708_NAME "imx708"
-#define OF_CAMERA_HDR_MODE "rockchip,camera-hdr-mode"
-
-/*
- * Initialisation delay between XCLR low->high and the moment when the sensor
- * can start capture (i.e. can leave software standby), given by T7 in the
- * datasheet is 8ms.  This does include I2C setup time as well.
- *
- * Note, that delay between XCLR low->high and reading the CCI ID register (T6
- * in the datasheet) is much smaller - 600us.
- */
-#define IMX708_XCLR_MIN_DELAY_US 8000
-#define IMX708_XCLR_DELAY_RANGE_US 1000
-
 enum pad_types {
 	IMAGE_PAD,
 	METADATA_PAD,
@@ -180,18 +169,8 @@ struct imx708_reg_list {
 	const struct imx708_reg *regs;
 };
 
-/* regulator supplies */
-static const char *const imx708_supply_name[] = {
-	/* Supplies can be enabled in any order */
-	"vana1", /* Analog1 (2.8V) supply */
-	"vana2", /* Analog2 (1.8V) supply */
-	"vdig", /* Digital Core (1.1V) supply */
-	"vddl", /* IF (1.8V) supply */
-};
-
 /* Mode : resolution and related config&values */
 struct imx708_mode {
-	/* Bus format */
 	u32 bus_fmt;
 
 	/* Frame width */
@@ -226,10 +205,10 @@ struct imx708_mode {
 	/* Not all modes have the same exposure lines step. */
 	u32 exposure_lines_step;
 
-	/* HDR mode. */
+	/* Rockchip HDR mode */
 	u32 rk_hdr_mode;
 
-	/* VC values. */
+	/* VC numbers for each pad */
 	u32 vc[PAD_MAX];
 
 	/* Bit depth */
@@ -237,62 +216,6 @@ struct imx708_mode {
 
 	/* Quad Bayer Re-mosaic flag */
 	bool remosaic;
-};
-
-struct imx708 {
-	struct v4l2_subdev subdev;
-	struct media_pad pad[NUM_PADS];
-
-	struct v4l2_mbus_framefmt fmt;
-
-	struct i2c_client *client;
-	struct gpio_desc *reset_gpio;
-	struct regulator_bulk_data supplies[ARRAY_SIZE(imx708_supply_name)];
-
-	struct clk *inclk;
-	u32 inclk_freq;
-
-	struct v4l2_ctrl_handler ctrl_handler;
-	/* V4L2 Controls */
-	struct v4l2_ctrl *pixel_rate;
-	struct v4l2_ctrl *exposure;
-	struct v4l2_ctrl *vblank;
-	struct v4l2_ctrl *hblank;
-	struct v4l2_ctrl *hdr_mode;
-	struct v4l2_ctrl *link_freq;
-	struct {
-		struct v4l2_ctrl *hflip;
-		struct v4l2_ctrl *vflip;
-	};
-
-	/* Current mode */
-	const struct imx708_mode *cur_mode;
-
-	/*
-	 * Mutex for serialized access:
-	 * Protect sensor module set pad format and start/stop streaming safely.
-	 */
-	struct mutex mutex;
-
-	/* Streaming on/off */
-	bool streaming;
-	bool power_on;
-
-	/* Rockchip module */
-	u32 module_index;
-	u32 cfg_num;
-	const char *module_facing;
-	const char *module_name;
-	const char *len_name;
-
-	/* Rewrite common registers on stream on? */
-	bool common_regs_written;
-
-	/* Current long exposure factor in use. Set through V4L2_CID_VBLANK */
-	unsigned int long_exp_shift;
-
-	/* Current link frequency in use. Set through V4L2_CID_LINK_FREQ */
-	unsigned int link_freq_idx;
 };
 
 /* Default PDAF pixel correction gains */
@@ -776,7 +699,7 @@ static const struct imx708_reg mode_hdr_regs[] = {
 
 /* Mode configs. Keep separate lists for when HDR is enabled or not. */
 static const struct imx708_mode supported_modes_hdr[] = {
-{
+	{
 		.bus_fmt = MEDIA_BUS_FMT_SRGGB10_1X10,
 		/* There's only one HDR mode, which is 2x2 downscaled */
 		.width = 1920,
@@ -802,11 +725,11 @@ static const struct imx708_mode supported_modes_hdr[] = {
 		.exposure_lines_min = 8 * IMX708_HDR_EXPOSURE_RATIO * IMX708_HDR_EXPOSURE_RATIO,
 		.exposure_lines_step = 2 * IMX708_HDR_EXPOSURE_RATIO * IMX708_HDR_EXPOSURE_RATIO,
 		.rk_hdr_mode = HDR_X3,
-		.bpp = 10,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_2,
 		.vc[PAD1] = V4L2_MBUS_CSI2_CHANNEL_1,//M->csi wr0
 		.vc[PAD2] = V4L2_MBUS_CSI2_CHANNEL_0,//L->csi wr0
 		.vc[PAD3] = V4L2_MBUS_CSI2_CHANNEL_2,//S->csi wr2
+		.bpp = 10,
 		.remosaic = false
 	},
 	{
@@ -835,16 +758,15 @@ static const struct imx708_mode supported_modes_hdr[] = {
 		.exposure_lines_min = 8 * IMX708_HDR_EXPOSURE_RATIO * IMX708_HDR_EXPOSURE_RATIO,
 		.exposure_lines_step = 2 * IMX708_HDR_EXPOSURE_RATIO * IMX708_HDR_EXPOSURE_RATIO,
 		.rk_hdr_mode = HDR_X3,
-		.bpp = 10,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_2,
 		.vc[PAD1] = V4L2_MBUS_CSI2_CHANNEL_1,//M->csi wr0
 		.vc[PAD2] = V4L2_MBUS_CSI2_CHANNEL_0,//L->csi wr0
 		.vc[PAD3] = V4L2_MBUS_CSI2_CHANNEL_2,//S->csi wr2
+		.bpp = 10,
 		.remosaic = false
 	},
 };
-
-static const struct imx708_mode supported_modes_no_hdr[] = {
+static const struct imx708_mode supported_modes[] = {
 	{
 		.bus_fmt = MEDIA_BUS_FMT_SRGGB10_1X10,
 		/* Full resolution. */
@@ -871,8 +793,8 @@ static const struct imx708_mode supported_modes_no_hdr[] = {
 		.exposure_lines_min = 8,
 		.exposure_lines_step = 1,
 		.rk_hdr_mode = NO_HDR,
-		.bpp = 10,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_0,
+		.bpp = 10,
 		.remosaic = true
 	},
 	{
@@ -901,11 +823,11 @@ static const struct imx708_mode supported_modes_no_hdr[] = {
 		.exposure_lines_min = 4,
 		.exposure_lines_step = 2,
 		.rk_hdr_mode = NO_HDR,
-		.bpp = 10,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_0,
+		.bpp = 10,
 		.remosaic = false
 	},
-		{
+	{
 		.bus_fmt = MEDIA_BUS_FMT_SRGGB10_1X10,
 		/* 2x2 binned and cropped for 720p. */
 		.width = 1536,
@@ -931,8 +853,8 @@ static const struct imx708_mode supported_modes_no_hdr[] = {
 		.exposure_lines_min = 4,
 		.exposure_lines_step = 2,
 		.rk_hdr_mode = NO_HDR,
-		.bpp = 10,
 		.vc[PAD0] = V4L2_MBUS_CSI2_CHANNEL_0,
+		.bpp = 10,
 		.remosaic = false
 	},
 };
@@ -970,6 +892,80 @@ static const int imx708_test_pattern_val[] = {
 	IMX708_TEST_PATTERN_PN9,
 };
 
+/* regulator supplies */
+static const char *const imx708_supply_name[] = {
+	/* Supplies can be enabled in any order */
+	"vana1", /* Analog1 (2.8V) supply */
+	"vana2", /* Analog2 (1.8V) supply */
+	"vdig", /* Digital Core (1.1V) supply */
+	"vddl", /* IF (1.8V) supply */
+};
+
+/*
+ * Initialisation delay between XCLR low->high and the moment when the sensor
+ * can start capture (i.e. can leave software standby), given by T7 in the
+ * datasheet is 8ms.  This does include I2C setup time as well.
+ *
+ * Note, that delay between XCLR low->high and reading the CCI ID register (T6
+ * in the datasheet) is much smaller - 600us.
+ */
+#define IMX708_XCLR_MIN_DELAY_US 8000
+#define IMX708_XCLR_DELAY_RANGE_US 1000
+
+struct imx708 {
+	struct i2c_client *client;
+	struct clk *inclk;
+	struct gpio_desc *reset_gpio;
+
+	struct regulator_bulk_data supplies[ARRAY_SIZE(imx708_supply_name)];
+
+	struct v4l2_mbus_framefmt fmt;
+
+	u32 inclk_freq;
+
+	struct v4l2_subdev subdev;
+	struct media_pad pad[NUM_PADS];
+	struct v4l2_ctrl_handler ctrl_handler;
+	/* V4L2 Controls */
+	struct v4l2_ctrl *pixel_rate;
+	struct v4l2_ctrl *exposure;
+	struct v4l2_ctrl *vblank;
+	struct v4l2_ctrl *hblank;
+	struct v4l2_ctrl *hdr_mode;
+	struct v4l2_ctrl *link_freq;
+	struct {
+		struct v4l2_ctrl *hflip;
+		struct v4l2_ctrl *vflip;
+	};
+
+	/*
+	 * Mutex for serialized access:
+	 * Protect sensor module set pad format and start/stop streaming safely.
+	 */
+	struct mutex mutex;
+
+	/* Streaming on/off */
+	bool streaming;
+	bool power_on;
+
+	/* Current mode */
+	const struct imx708_mode *cur_mode;
+	/*module*/
+	u32 module_index;
+	u32 cfg_num;
+	const char *module_facing;
+	const char *module_name;
+	const char *len_name;
+
+	/* Rewrite common registers on stream on? */
+	bool common_regs_written;
+
+	/* Current long exposure factor in use. Set through V4L2_CID_VBLANK */
+	unsigned int long_exp_shift;
+
+	unsigned int link_freq_idx;
+};
+
 static inline struct imx708 *to_imx708(struct v4l2_subdev *_sd)
 {
 	return container_of(_sd, struct imx708, subdev);
@@ -990,8 +986,8 @@ static inline void get_mode_table(unsigned int code,
 			*mode_list = supported_modes_hdr;
 			*num_modes = ARRAY_SIZE(supported_modes_hdr);
 		} else {
-			*mode_list = supported_modes_no_hdr;
-			*num_modes = ARRAY_SIZE(supported_modes_no_hdr);
+			*mode_list = supported_modes;
+			*num_modes = ARRAY_SIZE(supported_modes);
 		}
 		break;
 	default:
@@ -1081,37 +1077,27 @@ static int imx708_get_reso_dist(const struct imx708_mode *mode,
 }
 
 static const struct imx708_mode *
-imx708_find_best_fit(struct imx708 *imx708, struct v4l2_subdev_format *fmt)
+imx708_find_best_fit(struct imx708 *imx708, struct v4l2_subdev_format *fmt,
+		     const struct imx708_mode *mode_list)
 {
 	struct v4l2_mbus_framefmt *framefmt = &fmt->format;
-	const struct imx708_mode *supported_modes;
-	unsigned int num_modes, i;
-	int cur_best_fit = -1, cur_best_fit_dist = -1, dist;
+	int dist;
+	int cur_best_fit = 0;
+	int cur_best_fit_dist = -1;
+	unsigned int i;
 
-	if (imx708->cur_mode->rk_hdr_mode != NO_HDR) {
-		supported_modes = supported_modes_hdr;
-	} else {
-		supported_modes = supported_modes_no_hdr;
-	}
-	num_modes = imx708->cfg_num;
-
-	for (i = 0; i < num_modes; i++) {
-		if (supported_modes[i].bus_fmt != framefmt->code)
-			continue;
-
-		dist = imx708_get_reso_dist(&supported_modes[i], framefmt);
-		if (cur_best_fit == -1 || dist < cur_best_fit_dist) {
+	for (i = 0; i < imx708->cfg_num; i++) {
+		dist = imx708_get_reso_dist(&mode_list[i], framefmt);
+		if ((cur_best_fit_dist == -1 || dist < cur_best_fit_dist) &&
+		    mode_list[i].bus_fmt == framefmt->code) {
 			cur_best_fit_dist = dist;
 			cur_best_fit = i;
 		}
 	}
+	dev_info(&imx708->client->dev, "%s: cur_best_fit(%d)", __func__,
+		 cur_best_fit);
 
-	if (cur_best_fit != -1) {
-		dev_info(&imx708->client->dev, "%s: cur_best_fit(%d)", __func__, cur_best_fit);
-		return &supported_modes[cur_best_fit];
-	}
-
-	return NULL;
+	return &mode_list[cur_best_fit];
 }
 
 /* Get bayer order based on flip setting. */
@@ -1132,7 +1118,7 @@ static void imx708_set_default_format(struct imx708 *imx708)
 	struct v4l2_mbus_framefmt *fmt = &imx708->fmt;
 
 	/* Set default mode to max resolution */
-	imx708->cur_mode = &supported_modes_no_hdr[0];
+	imx708->cur_mode = &supported_modes[0];
 
 	/* fmt->code not set as it will always be computed based on flips */
 	fmt->colorspace = V4L2_COLORSPACE_RAW;
@@ -1153,7 +1139,6 @@ static int imx708_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		v4l2_subdev_get_try_format(sd, fh->pad, IMAGE_PAD);
 	struct v4l2_mbus_framefmt *try_fmt_meta =
 		v4l2_subdev_get_try_format(sd, fh->pad, METADATA_PAD);
-	struct v4l2_rect *try_crop;
 
 	mutex_lock(&imx708->mutex);
 
@@ -1162,8 +1147,8 @@ static int imx708_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		try_fmt_img->width = supported_modes_hdr[0].width;
 		try_fmt_img->height = supported_modes_hdr[0].height;
 	} else {
-		try_fmt_img->width = supported_modes_no_hdr[0].width;
-		try_fmt_img->height = supported_modes_no_hdr[0].height;
+		try_fmt_img->width = supported_modes[0].width;
+		try_fmt_img->height = supported_modes[0].height;
 	}
 	try_fmt_img->code = imx708_get_format_code(imx708);
 	try_fmt_img->field = V4L2_FIELD_NONE;
@@ -1173,13 +1158,6 @@ static int imx708_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	try_fmt_meta->height = IMX708_NUM_EMBEDDED_LINES;
 	try_fmt_meta->code = MEDIA_BUS_FMT_SENSOR_DATA;
 	try_fmt_meta->field = V4L2_FIELD_NONE;
-
-	/* Initialize try_crop */
-	try_crop = v4l2_subdev_get_try_crop(sd, fh->pad, IMAGE_PAD);
-	try_crop->left = IMX708_PIXEL_ARRAY_LEFT;
-	try_crop->top = IMX708_PIXEL_ARRAY_TOP;
-	try_crop->width = IMX708_PIXEL_ARRAY_WIDTH;
-	try_crop->height = IMX708_PIXEL_ARRAY_HEIGHT;
 
 	mutex_unlock(&imx708->mutex);
 
@@ -1395,7 +1373,9 @@ static int imx708_g_frame_interval(struct v4l2_subdev *sd,
 	struct imx708 *imx708 = to_imx708(sd);
 	const struct imx708_mode *mode = imx708->cur_mode;
 
+	mutex_lock(&imx708->mutex);
 	fi->interval = mode->max_fps;
+	mutex_unlock(&imx708->mutex);
 
 	return 0;
 }
@@ -1547,7 +1527,7 @@ static int imx708_set_pad_format(struct v4l2_subdev *sd,
 
 		get_mode_table(fmt->format.code, &mode_list, &num_modes,
 			       imx708->hdr_mode->val);
-		mode = imx708_find_best_fit(imx708, fmt);
+		mode = imx708_find_best_fit(imx708, fmt, mode_list);
 		imx708_update_image_pad_format(imx708, mode, fmt);
 		if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
 			framefmt = v4l2_subdev_get_try_format(sd, cfg,
@@ -1571,57 +1551,6 @@ static int imx708_set_pad_format(struct v4l2_subdev *sd,
 	mutex_unlock(&imx708->mutex);
 
 	return 0;
-}
-
-static const struct v4l2_rect *
-__imx708_get_pad_crop(struct imx708 *imx708, struct v4l2_subdev_pad_config *cfg,
-		      unsigned int pad, enum v4l2_subdev_format_whence which)
-{
-	switch (which) {
-	case V4L2_SUBDEV_FORMAT_TRY:
-		return v4l2_subdev_get_try_crop(&imx708->subdev, cfg, pad);
-	case V4L2_SUBDEV_FORMAT_ACTIVE:
-		return &imx708->cur_mode->crop;
-	}
-
-	return NULL;
-}
-
-static int imx708_get_selection(struct v4l2_subdev *sd,
-				struct v4l2_subdev_pad_config *cfg,
-				struct v4l2_subdev_selection *sel)
-{
-	switch (sel->target) {
-	case V4L2_SEL_TGT_CROP: {
-		struct imx708 *imx708 = to_imx708(sd);
-
-		mutex_lock(&imx708->mutex);
-		sel->r = *__imx708_get_pad_crop(imx708, cfg, sel->pad,
-						sel->which);
-		mutex_unlock(&imx708->mutex);
-
-		return 0;
-	}
-
-	case V4L2_SEL_TGT_NATIVE_SIZE:
-		sel->r.left = 0;
-		sel->r.top = 0;
-		sel->r.width = IMX708_NATIVE_WIDTH;
-		sel->r.height = IMX708_NATIVE_HEIGHT;
-
-		return 0;
-
-	case V4L2_SEL_TGT_CROP_DEFAULT:
-	case V4L2_SEL_TGT_CROP_BOUNDS:
-		sel->r.left = IMX708_PIXEL_ARRAY_LEFT;
-		sel->r.top = IMX708_PIXEL_ARRAY_TOP;
-		sel->r.width = IMX708_PIXEL_ARRAY_WIDTH;
-		sel->r.height = IMX708_PIXEL_ARRAY_HEIGHT;
-
-		return 0;
-	}
-
-	return -EINVAL;
 }
 
 /* Start streaming */
@@ -1759,7 +1688,6 @@ static int imx708_set_stream(struct v4l2_subdev *sd, int enable)
 	/* vflip/hflip and hdr mode cannot change during streaming */
 	__v4l2_ctrl_grab(imx708->vflip, enable);
 	__v4l2_ctrl_grab(imx708->hflip, enable);
-	__v4l2_ctrl_grab(imx708->hdr_mode, enable);
 
 	mutex_unlock(&imx708->mutex);
 
@@ -1795,8 +1723,7 @@ static int imx708_power_on(struct device *dev)
 		goto reg_off;
 	}
 
-	if (!IS_ERR(imx708->reset_gpio))
-		gpiod_direction_output(imx708->reset_gpio, 1);
+	gpiod_direction_output(imx708->reset_gpio, 1);
 	usleep_range(IMX708_XCLR_MIN_DELAY_US,
 		     IMX708_XCLR_MIN_DELAY_US + IMX708_XCLR_DELAY_RANGE_US);
 
@@ -1816,8 +1743,7 @@ static int imx708_power_off(struct device *dev)
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 	struct imx708 *imx708 = to_imx708(sd);
 
-	if (!IS_ERR(imx708->reset_gpio))
-		gpiod_direction_output(imx708->reset_gpio, 0);
+	gpiod_direction_output(imx708->reset_gpio, 0);
 	regulator_bulk_disable(ARRAY_SIZE(imx708_supply_name),
 			       imx708->supplies);
 	clk_disable_unprepare(imx708->inclk);
@@ -2014,8 +1940,8 @@ static long imx708_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		for (i = 0; i < imx708->cfg_num; i++) {
 			if (w == supported_modes_hdr[i].width &&
 			    h == supported_modes_hdr[i].height &&
-			    supported_modes_hdr[i].rk_hdr_mode == hdr->hdr_mode) {
-				imx708->cur_mode = &supported_modes_hdr[i];
+			    supported_modes[i].rk_hdr_mode == hdr->hdr_mode) {
+				imx708->cur_mode = &supported_modes[i];
 				break;
 			}
 		}
@@ -2048,7 +1974,7 @@ static long imx708_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 		break;
 
 	// case RKMODULE_GET_CSI_DPHY_PARAM:
-	//	if (imx708->cur_mode->rk_hdr_mode == HDR_X2) {
+	//	if (imx708->cur_mode->hdr_mode == HDR_X2) {
 	//		dphy_param = (struct rkmodule_csi_dphy_param *)arg;
 	//		if (dphy_param->vendor == dcphy_param.vendor)
 	//			*dphy_param = dcphy_param;
@@ -2190,21 +2116,20 @@ imx708_enum_frame_interval(struct v4l2_subdev *sd,
 			   struct v4l2_subdev_frame_interval_enum *fie)
 {
 	struct imx708 *imx708 = to_imx708(sd);
-	const struct imx708_mode *supported_modes;
+	const struct imx708_mode *mode_list;
+	unsigned int num_modes, code;
 
-	if (imx708->cur_mode->rk_hdr_mode != NO_HDR) {
-		supported_modes = supported_modes_hdr;
-	} else {
-		supported_modes = supported_modes_no_hdr;
-	}
+	code = imx708_get_format_code(imx708);
+	get_mode_table(code, &mode_list, &num_modes,
+		       imx708->hdr_mode->val);
 
-	if (fie->index >= imx708->cfg_num)
+	if (fie->index >= num_modes)
 		return -EINVAL;
 
-	fie->code = supported_modes[fie->index].bus_fmt;
-	fie->width = supported_modes[fie->index].width;
-	fie->height = supported_modes[fie->index].height;
-	fie->interval = supported_modes[fie->index].max_fps;
+	fie->code = mode_list[fie->index].bus_fmt;
+	fie->width = mode_list[fie->index].width;
+	fie->height = mode_list[fie->index].height;
+	fie->interval = mode_list[fie->index].max_fps;
 
 	return 0;
 }
@@ -2230,7 +2155,7 @@ static const struct v4l2_subdev_pad_ops imx708_pad_ops = {
 	.enum_frame_interval = imx708_enum_frame_interval,
 	.get_fmt = imx708_get_pad_format,
 	.set_fmt = imx708_set_pad_format,
-	.get_selection = imx708_get_selection,
+	// .get_selection = imx708_get_selection,
 	.set_mbus_config = imx708_g_mbus_config,
 
 };
@@ -2361,7 +2286,7 @@ static int imx708_init_controls(struct imx708 *imx708)
 	imx708->hflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
 	imx708->vflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
 	imx708->hdr_mode->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
-
+	
 	imx708->subdev.ctrl_handler = ctrl_hdlr;
 
 	/* Setup exposure and frame/line length limits. */
@@ -2445,7 +2370,7 @@ static int imx708_probe(struct i2c_client *client,
 	struct v4l2_subdev *sd;
 	char facing[2];
 	int ret;
-	u32 i, rk_hdr_mode = 0;
+	u32 i, hdr_mode = 0;
 
 	dev_info(dev, "driver version: %02x.%02x.%02x", DRIVER_VERSION >> 16,
 		 (DRIVER_VERSION & 0xff00) >> 8, DRIVER_VERSION & 0x00ff);
@@ -2467,13 +2392,32 @@ static int imx708_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
-	ret = of_property_read_u32(node, OF_CAMERA_HDR_MODE, &rk_hdr_mode);
+	ret = of_property_read_u32(node, OF_CAMERA_HDR_MODE, &hdr_mode);
 	if (ret) {
-		rk_hdr_mode = NO_HDR;
+		hdr_mode = NO_HDR;
 		dev_warn(dev, " Get hdr mode failed! no hdr default\n");
 	}
 
 	imx708->client = client;
+
+	/* Initialize default format */
+	imx708_set_default_format(imx708);
+
+	if (hdr_mode != NO_HDR) {
+		imx708->cfg_num = ARRAY_SIZE(supported_modes_hdr);
+
+		for (i = 0; i < imx708->cfg_num; i++) {
+			if (hdr_mode == supported_modes_hdr[i].rk_hdr_mode) {
+				imx708->cur_mode = &supported_modes_hdr[i];
+				break;
+			}
+		}
+
+		if (i >= imx708->cfg_num)
+			dev_warn(dev, " Get hdr mode failed! no hdr config\n");
+	} else
+		imx708->cfg_num = ARRAY_SIZE(supported_modes);
+
 	sd = &imx708->subdev;
 	v4l2_i2c_subdev_init(sd, client, &imx708_subdev_ops);
 
@@ -2500,10 +2444,9 @@ static int imx708_probe(struct i2c_client *client,
 		return dev_err_probe(dev, ret, "failed to get regulators\n");
 
 	/* Request optional enable pin */
-	imx708->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+	imx708->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_ASIS);
 	if (IS_ERR(imx708->reset_gpio))
-		dev_warn(dev, "Failed to get reset-gpios, ignoring!\n");
-
+		dev_warn(dev, "Failed to get reset-gpios\n");
 	/*
 	 * The sensor must be powered for imx708_identify_module()
 	 * to be able to read the CHIP_ID register
@@ -2520,26 +2463,6 @@ static int imx708_probe(struct i2c_client *client,
 		goto error_power_off;
 	}
 
-	if (rk_hdr_mode != NO_HDR) {
-		imx708->cfg_num = ARRAY_SIZE(supported_modes_hdr);
-
-		for (i = 0; i < imx708->cfg_num; i++) {
-			if (rk_hdr_mode == supported_modes_hdr[i].rk_hdr_mode) {
-				imx708->cur_mode = &supported_modes_hdr[i];
-				break;
-			}
-		}
-
-		if (i >= imx708->cfg_num) {
-			dev_warn(dev, " Get hdr mode failed! no hdr config\n");
-			imx708->cur_mode = &supported_modes_no_hdr[0];
-		}
-	} else
-		imx708->cfg_num = ARRAY_SIZE(supported_modes_no_hdr);
-
-	/* Initialize default format */
-	imx708_set_default_format(imx708);
-
 	/* Enable runtime PM and turn off the device */
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
@@ -2555,10 +2478,10 @@ static int imx708_probe(struct i2c_client *client,
 	/* Initialize subdev */
 	sd->internal_ops = &imx708_internal_ops;
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
-
 	/* Initialize source pads */
 	imx708->pad[IMAGE_PAD].flags = MEDIA_PAD_FL_SOURCE;
 	imx708->pad[METADATA_PAD].flags = MEDIA_PAD_FL_SOURCE;
+	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
 
 	ret = media_entity_pads_init(&sd->entity, NUM_PADS, imx708->pad);
 	if (ret) {
@@ -2585,10 +2508,8 @@ static int imx708_probe(struct i2c_client *client,
 
 error_media_entity:
 	media_entity_cleanup(&sd->entity);
-
 error_handler_free:
 	imx708_free_controls(imx708);
-
 error_pm_runtime:
 	pm_runtime_disable(&client->dev);
 	pm_runtime_set_suspended(&client->dev);
@@ -2606,31 +2527,31 @@ static int imx708_remove(struct i2c_client *client)
 
 	v4l2_async_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
+
 	imx708_free_controls(imx708);
 
 	pm_runtime_disable(&client->dev);
 	if (!pm_runtime_status_suspended(&client->dev))
 		imx708_power_off(&client->dev);
 	pm_runtime_set_suspended(&client->dev);
+
 	return 0;
 }
 
-#if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id imx708_of_match[] = {
 	{ .compatible = "sony,imx708" },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, imx708_of_match);
-#endif
 
 static const struct i2c_device_id imx708_match_id[] = {
 	{ "sony,imx708", 0 },
-	{ },
+	{},
 };
 
 static const struct dev_pm_ops imx708_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(imx708_suspend, imx708_resume)
-	SET_RUNTIME_PM_OPS(imx708_power_off, imx708_power_on, NULL)
+		SET_RUNTIME_PM_OPS(imx708_power_off, imx708_power_on, NULL)
 };
 
 static struct i2c_driver imx708_i2c_driver = {
@@ -2644,9 +2565,18 @@ static struct i2c_driver imx708_i2c_driver = {
 	.id_table = imx708_match_id,
 };
 
-module_i2c_driver(imx708_i2c_driver);
+static int __init sensor_mod_init(void)
+{
+	return i2c_add_driver(&imx708_i2c_driver);
+}
 
-MODULE_AUTHOR("David Plowman <david.plowman@raspberrypi.com>");
-MODULE_AUTHOR("Utsav Balar <utsavbalar1231@gmail.com>");
+static void __exit sensor_mod_exit(void)
+{
+	i2c_del_driver(&imx708_i2c_driver);
+}
+
+device_initcall_sync(sensor_mod_init);
+module_exit(sensor_mod_exit);
+
 MODULE_DESCRIPTION("Sony IMX708 sensor driver");
 MODULE_LICENSE("GPL v2");
